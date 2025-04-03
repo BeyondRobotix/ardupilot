@@ -1,0 +1,64 @@
+include ../BeyondRobotixM/hwdef.inc
+
+define AP_PERIPH_BATTERY_MODEL_NAME "MatekL431-BattMon"
+
+# --------------------- PWM -----------------------
+PA8   TIM1_CH1  TIM1    PWM(1)  GPIO(50)
+PA9   TIM1_CH2  TIM1    PWM(2)  GPIO(51)
+PA10  TIM1_CH3  TIM1    PWM(3)  GPIO(52)
+PA11  TIM1_CH4  TIM1    PWM(4)  GPIO(53)
+
+# ----------------------- GPS ----------------------------
+define AP_PERIPH_GPS_ENABLED 1
+define GPS_MAX_RATE_MS 200
+
+define GPS_MAX_RECEIVERS 1
+define GPS_MAX_INSTANCES 1
+
+define HAL_PERIPH_GPS_PORT_DEFAULT 2
+
+# allow for F9P GPS modules with moving baseline
+define GPS_MOVING_BASELINE 1
+
+# restrict backends available to save flash (i.e. only UBLOX)
+define AP_GPS_NOVA_ENABLED 0
+define AP_GPS_SBF_ENABLED 1
+define AP_GPS_GSOF_ENABLED 0
+
+# ---------------------- COMPASS ---------------------------
+define AP_PERIPH_MAG_ENABLED 0
+
+# --------------------- Barometer ---------------------------
+define AP_PERIPH_BARO_ENABLED 1
+define HAL_BARO_ALLOW_INIT_NO_BARO
+define BARO_MAX_INSTANCES 1
+
+BARO SPL06 I2C:0:0x76
+
+# ------------------ I2C airspeed -------------------------
+define AP_PERIPH_AIRSPEED_ENABLED 1
+
+# MS4525 sensor by default
+define HAL_AIRSPEED_TYPE_DEFAULT 1
+define AIRSPEED_MAX_SENSORS 1
+
+# -------------------- MSP --------------------------------
+define AP_PERIPH_MSP_ENABLED 0
+define HAL_MSP_ENABLED 0
+define AP_PERIPH_MSP_PORT_DEFAULT 1
+
+# ------------------ BATTERY Monitor -----------------------
+define AP_PERIPH_BATTERY_ENABLED 1
+
+# -------------------- Buzzer+NeoPixels --------------d------
+define AP_PERIPH_RC_OUT_ENABLED 1
+define AP_PERIPH_NOTIFY_ENABLED 0
+
+define HAL_SERIAL_ESC_COMM_ENABLED 1
+
+define HAL_USE_ADC FALSE
+define STM32_ADC_USE_ADC1 FALSE
+
+# also enable relay output via hardpoint msgs
+define AP_PERIPH_RELAY_ENABLED 1
+define AP_RELAY_ENABLED 1
