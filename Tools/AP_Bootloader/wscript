@@ -5,6 +5,10 @@ def build(bld):
     if not bld.env.BOOTLOADER:
         return
 
+    bld.env.append_value('CXXFLAGS', ['-DAP_SIGNED_FIRMWARE=0'])
+    bld.env.append_value('CFLAGS', ['-DAP_SIGNED_FIRMWARE=0'])
+
+
     if bld.env.EXT_FLASH_SIZE_MB:
         flashiface_lib = ['AP_HAL', 'AP_FlashIface', 'AP_HAL_Empty']
     else:

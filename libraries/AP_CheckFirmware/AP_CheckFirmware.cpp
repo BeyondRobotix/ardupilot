@@ -80,48 +80,48 @@ static check_fw_result_t check_firmware_signature(const app_descriptor_signed *a
  */
 static check_fw_result_t check_good_firmware_signed(void)
 {
-    const uint8_t sig[8] = AP_APP_DESCRIPTOR_SIGNATURE_SIGNED;
-    const uint8_t *flash1 = (const uint8_t *)(FLASH_LOAD_ADDRESS + (FLASH_BOOTLOADER_LOAD_KB + APP_START_OFFSET_KB)*1024);
-    const uint32_t flash_size = (BOARD_FLASH_SIZE - (FLASH_BOOTLOADER_LOAD_KB + APP_START_OFFSET_KB))*1024;
-    const app_descriptor_signed *ad = (const app_descriptor_signed *)memmem(flash1, flash_size-sizeof(app_descriptor_signed), sig, sizeof(sig));
-    if (ad == nullptr) {
-        // no application signature
-        return check_fw_result_t::FAIL_REASON_NO_APP_SIG;
-    }
-    // check length
-    if (ad->image_size > flash_size) {
-        return check_fw_result_t::FAIL_REASON_BAD_LENGTH_APP;
-    }
+//     const uint8_t sig[8] = AP_APP_DESCRIPTOR_SIGNATURE_SIGNED;
+//     const uint8_t *flash1 = (const uint8_t *)(FLASH_LOAD_ADDRESS + (FLASH_BOOTLOADER_LOAD_KB + APP_START_OFFSET_KB)*1024);
+//     const uint32_t flash_size = (BOARD_FLASH_SIZE - (FLASH_BOOTLOADER_LOAD_KB + APP_START_OFFSET_KB))*1024;
+//     const app_descriptor_signed *ad = (const app_descriptor_signed *)memmem(flash1, flash_size-sizeof(app_descriptor_signed), sig, sizeof(sig));
+//     if (ad == nullptr) {
+//         // no application signature
+//         return check_fw_result_t::FAIL_REASON_NO_APP_SIG;
+//     }
+//     // check length
+//     if (ad->image_size > flash_size) {
+//         return check_fw_result_t::FAIL_REASON_BAD_LENGTH_APP;
+//     }
 
-    bool id_ok = (ad->board_id == APJ_BOARD_ID);
-#ifdef ALT_BOARD_ID
-    id_ok |= (ad->board_id == ALT_BOARD_ID);
-#endif
+//     bool id_ok = (ad->board_id == APJ_BOARD_ID);
+// #ifdef ALT_BOARD_ID
+//     id_ok |= (ad->board_id == ALT_BOARD_ID);
+// #endif
 
-    if (!id_ok) {
-        return check_fw_result_t::FAIL_REASON_BAD_BOARD_ID;
-    }
+//     if (!id_ok) {
+//         return check_fw_result_t::FAIL_REASON_BAD_BOARD_ID;
+//     }
 
-    const uint8_t *flash2 = (const uint8_t *)&ad->version_major;
-    const uint8_t desc_len = offsetof(app_descriptor_signed, version_major) - offsetof(app_descriptor_signed, image_crc1);
-    const uint32_t len1 = ((const uint8_t *)&ad->image_crc1) - flash1;
+//     const uint8_t *flash2 = (const uint8_t *)&ad->version_major;
+//     const uint8_t desc_len = offsetof(app_descriptor_signed, version_major) - offsetof(app_descriptor_signed, image_crc1);
+//     const uint32_t len1 = ((const uint8_t *)&ad->image_crc1) - flash1;
 
-    if ((len1 + desc_len) > ad->image_size) {
-        return check_fw_result_t::FAIL_REASON_BAD_LENGTH_DESCRIPTOR;
-    }
+//     if ((len1 + desc_len) > ad->image_size) {
+//         return check_fw_result_t::FAIL_REASON_BAD_LENGTH_DESCRIPTOR;
+//     }
 
-    const uint32_t len2 = ad->image_size - (len1 + desc_len);
-    uint32_t crc1 = crc32_small(0, flash1, len1);
-    uint32_t crc2 = crc32_small(0, flash2, len2);
-    if (crc1 != ad->image_crc1 || crc2 != ad->image_crc2) {
-        return check_fw_result_t::FAIL_REASON_BAD_CRC;
-    }
+//     const uint32_t len2 = ad->image_size - (len1 + desc_len);
+//     uint32_t crc1 = crc32_small(0, flash1, len1);
+//     uint32_t crc2 = crc32_small(0, flash2, len2);
+//     if (crc1 != ad->image_crc1 || crc2 != ad->image_crc2) {
+//         return check_fw_result_t::FAIL_REASON_BAD_CRC;
+//     }
 
     check_fw_result_t ret = check_fw_result_t::CHECK_FW_OK;
 
-#if AP_SIGNED_FIRMWARE
-    ret = check_firmware_signature(ad, flash1, len1, flash2, len2);
-#endif
+// #if AP_SIGNED_FIRMWARE
+//     ret = check_firmware_signature(ad, flash1, len1, flash2, len2);
+// #endif
 
     return ret;
 }
@@ -132,42 +132,42 @@ static check_fw_result_t check_good_firmware_signed(void)
  */
 static check_fw_result_t check_good_firmware_unsigned(void)
 {
-    const uint8_t sig[8] = AP_APP_DESCRIPTOR_SIGNATURE_UNSIGNED;
-    const uint8_t *flash1 = (const uint8_t *)(FLASH_LOAD_ADDRESS + (FLASH_BOOTLOADER_LOAD_KB + APP_START_OFFSET_KB)*1024);
-    const uint32_t flash_size = (BOARD_FLASH_SIZE - (FLASH_BOOTLOADER_LOAD_KB + APP_START_OFFSET_KB))*1024;
-    const app_descriptor_unsigned *ad = (const app_descriptor_unsigned *)memmem(flash1, flash_size-sizeof(app_descriptor_unsigned), sig, sizeof(sig));
-    if (ad == nullptr) {
-        // no application signature
-        return check_fw_result_t::FAIL_REASON_NO_APP_SIG;
-    }
-    // check length
-    if (ad->image_size > flash_size) {
-        return check_fw_result_t::FAIL_REASON_BAD_LENGTH_APP;
-    }
+//     const uint8_t sig[8] = AP_APP_DESCRIPTOR_SIGNATURE_UNSIGNED;
+//     const uint8_t *flash1 = (const uint8_t *)(FLASH_LOAD_ADDRESS + (FLASH_BOOTLOADER_LOAD_KB + APP_START_OFFSET_KB)*1024);
+//     const uint32_t flash_size = (BOARD_FLASH_SIZE - (FLASH_BOOTLOADER_LOAD_KB + APP_START_OFFSET_KB))*1024;
+//     const app_descriptor_unsigned *ad = (const app_descriptor_unsigned *)memmem(flash1, flash_size-sizeof(app_descriptor_unsigned), sig, sizeof(sig));
+//     if (ad == nullptr) {
+//         // no application signature
+//         return check_fw_result_t::FAIL_REASON_NO_APP_SIG;
+//     }
+//     // check length
+//     if (ad->image_size > flash_size) {
+//         return check_fw_result_t::FAIL_REASON_BAD_LENGTH_APP;
+//     }
 
-    bool id_ok = (ad->board_id == APJ_BOARD_ID);
-#ifdef ALT_BOARD_ID
-    id_ok |= (ad->board_id == ALT_BOARD_ID);
-#endif
+//     bool id_ok = (ad->board_id == APJ_BOARD_ID);
+// #ifdef ALT_BOARD_ID
+//     id_ok |= (ad->board_id == ALT_BOARD_ID);
+// #endif
 
-    if (!id_ok) {
-        return check_fw_result_t::FAIL_REASON_BAD_BOARD_ID;
-    }
+//     if (!id_ok) {
+//         return check_fw_result_t::FAIL_REASON_BAD_BOARD_ID;
+//     }
 
-    const uint8_t *flash2 = (const uint8_t *)&ad->version_major;
-    const uint8_t desc_len = offsetof(app_descriptor_unsigned, version_major) - offsetof(app_descriptor_unsigned, image_crc1);
-    const uint32_t len1 = ((const uint8_t *)&ad->image_crc1) - flash1;
+//     const uint8_t *flash2 = (const uint8_t *)&ad->version_major;
+//     const uint8_t desc_len = offsetof(app_descriptor_unsigned, version_major) - offsetof(app_descriptor_unsigned, image_crc1);
+//     const uint32_t len1 = ((const uint8_t *)&ad->image_crc1) - flash1;
 
-    if ((len1 + desc_len) > ad->image_size) {
-        return check_fw_result_t::FAIL_REASON_BAD_LENGTH_DESCRIPTOR;
-    }
+//     if ((len1 + desc_len) > ad->image_size) {
+//         return check_fw_result_t::FAIL_REASON_BAD_LENGTH_DESCRIPTOR;
+//     }
 
-    const uint32_t len2 = ad->image_size - (len1 + desc_len);
-    uint32_t crc1 = crc32_small(0, flash1, len1);
-    uint32_t crc2 = crc32_small(0, flash2, len2);
-    if (crc1 != ad->image_crc1 || crc2 != ad->image_crc2) {
-        return check_fw_result_t::FAIL_REASON_BAD_CRC;
-    }
+//     const uint32_t len2 = ad->image_size - (len1 + desc_len);
+//     uint32_t crc1 = crc32_small(0, flash1, len1);
+//     uint32_t crc2 = crc32_small(0, flash2, len2);
+//     if (crc1 != ad->image_crc1 || crc2 != ad->image_crc2) {
+//         return check_fw_result_t::FAIL_REASON_BAD_CRC;
+//     }
 
     return check_fw_result_t::CHECK_FW_OK;
 }

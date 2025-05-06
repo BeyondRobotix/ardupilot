@@ -214,6 +214,9 @@ led_set(enum led_state state)
         break;
     }
 }
+#define RCC_AHB1ENR    (*(volatile uint32_t*)0x40021014)  // AHB1 peripheral clock enable register
+#define RCC_AHB2ENR    (*(volatile uint32_t*)0x40021018)  // AHB2 peripheral clock enable register
+
 
 static void
 do_jump(uint32_t stacktop, uint32_t entrypoint)
@@ -226,14 +229,38 @@ do_jump(uint32_t stacktop, uint32_t entrypoint)
     SCB_DisableICache();
 #endif
 
-    chSysLock();    
+    // chSysLock();
+
+
+    // RCC->CR &= ~(RCC_CR_HSEON | RCC_CR_HSEBYP); // Turn off HSE (if it was enabled)
+    // RCC->CR &= ~RCC_CR_PLLON;                   // Turn off PLL
+    // RCC->CFGR &= ~RCC_CFGR_SW;                  // Clear system clock source
+
+    // // Reset AHB1, AHB2, APB1, APB2 peripherals by clearing the enable bits
+    // RCC_AHB1ENR = 0;
+    // RCC_AHB2ENR = 0;
+
+    // __disable_irq();  // Disable interrupts globally
+
+    // // Reset the NVIC (nested vectored interrupt controller)
+    // for (int i = 0; i < 8; i++) {
+    //     NVIC->ICER[i] = 0xFFFFFFFF;  // Clear interrupt enable registers
+    //     NVIC->ICPR[i] = 0xFFFFFFFF;  // Clear interrupt pending registers
+    // }
+
+    // RCC_AHB1ENR &= ~(1 << 0); // Disable GPIOA
+    // RCC_AHB1ENR &= ~(1 << 1); // Disable GPIOB
+    // RCC_AHB1ENR &= ~(1 << 2); // Disable GPIOC
+    // RCC_AHB2ENR &= ~(1 << 7); // Disable GPIOH
+
 
     // we set sp as well as msp to avoid an issue with loading NuttX
-    asm volatile(
-        "mov sp, %0	\n"
-        "msr msp, %0	\n"
-        "bx	%1	\n"
-        : : "r"(stacktop), "r"(entrypoint) :);
+    // Set the stack pointer to the application stack
+    asm volatile("mov sp, %0" : : "r"(stacktop));
+    asm volatile("msr msp, %0" : : "r"(stacktop));  // Set Main Stack Pointer
+
+    // Jump to the application entry point
+    asm volatile("bx %0" : : "r"(entrypoint));  // Jump to the application
 }
 
 #ifndef APP_START_ADDRESS
@@ -310,37 +337,49 @@ jump_to_app()
     
     led_set(LED_OFF);
 
-    // resetting the clocks is needed for loading NuttX
-#if defined(STM32H7)
-    rccDisableAPB1L(~0);
-    rccDisableAPB1H(~0);
-#elif defined(STM32G4)
-    rccDisableAPB1R1(~0);
-    rccDisableAPB1R2(~0);
-#elif defined(STM32L4)
-    rccDisableAPB1R1(~0);
-    rccDisableAPB1R2(~0);
-#elif defined(STM32L4PLUS)
-    rccDisableAPB1R1(~0);
-    rccDisableAPB1R2(~0);
-#else
-    rccDisableAPB1(~0);
-#endif
-    rccDisableAPB2(~0);
-#if HAL_USE_SERIAL_USB == TRUE
-#if !STM32_OTG2_IS_OTG1
-    rccResetOTG_FS();
-#endif
-#if defined(rccResetOTG_HS)
-    rccResetOTG_HS();
-#endif
-#endif
+        led_set(LED_OFF);
+    delay(200);
+    led_set(LED_ON);
+    delay(200);
+    led_set(LED_OFF);
+    delay(200);
+    led_set(LED_ON);
+
+//     // resetting the clocks is needed for loading NuttX
+// #if defined(STM32H7)
+//     rccDisableAPB1L(~0);
+//     rccDisableAPB1H(~0);
+// #elif defined(STM32G4)
+//     rccDisableAPB1R1(~0);
+//     rccDisableAPB1R2(~0);
+// #elif defined(STM32L4)
+//     rccDisableAPB1R1(~0);
+//     rccDisableAPB1R2(~0);
+// #elif defined(STM32L4PLUS)
+//     rccDisableAPB1R1(~0);
+//     rccDisableAPB1R2(~0);
+// #else
+//     rccDisableAPB1(~0);
+// #endif
+//     rccDisableAPB2(~0);
+// #if HAL_USE_SERIAL_USB == TRUE
+// #if !STM32_OTG2_IS_OTG1
+//     rccResetOTG_FS();
+// #endif
+// #if defined(rccResetOTG_HS)
+//     rccResetOTG_HS();
+// #endif
+// #endif
     
-    // disable all interrupt sources
-    port_disable();
+
+
+    // // disable all interrupt sources
+    // port_disable();
 
     /* switch exception handlers to the application */
     *(volatile uint32_t *)SCB_VTOR = APP_START_ADDRESS;
+
+
 
     /* extract the stack and entrypoint from the app vector table and go */
     do_jump(app_base[0], app_base[1]);

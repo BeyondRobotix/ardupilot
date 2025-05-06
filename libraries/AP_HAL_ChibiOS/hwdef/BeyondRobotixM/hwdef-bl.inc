@@ -26,34 +26,28 @@ define HAL_LED_ON 0
 # enable CAN support
 PB8 CAN1_RX CAN1
 PB9 CAN1_TX CAN1
-# PC13 GPIO_CAN1_SILENT OUTPUT PUSHPULL SPEED_LOW LOW
 
 CAN_ORDER 1
 
 # ---------------------------------------------
 
 # make bl baudrate match debug baudrate for easier debugging
-define BOOTLOADER_BAUDRATE 57600
+define BOOTLOADER_BAUDRATE 115200
 
 # use a small bootloader timeout
-define HAL_BOOTLOADER_TIMEOUT 1000
+define HAL_BOOTLOADER_TIMEOUT 2000
 
 define HAL_USE_SERIAL FALSE
-
-define HAL_NO_GPIO_IRQ
 define SERIAL_BUFFERS_SIZE 32
-define HAL_USE_EMPTY_IO TRUE
+define HAL_USE_EMPTY_IO FALSE
 define PORT_INT_REQUIRED_STACK 64
 define DMA_RESERVE_SIZE 0
 
 MAIN_STACK 0x800
 PROCESS_STACK 0x800
 
-# Add CS pins to ensure they are high in bootloader
-PA4 MAG_CS CS
-PB2 SPARE_CS CS
-
 # debugger support
 PA13 JTMS-SWDIO SWD
 PA14 JTCK-SWCLK SWD
 
+define BOOTLOADER_DEV_LIST

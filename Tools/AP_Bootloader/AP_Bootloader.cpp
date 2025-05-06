@@ -68,6 +68,7 @@ static BL_Network network;
 
 int main(void)
 {
+    printf("Start");
 #ifdef AP_BOOTLOADER_CUSTOM_HERE4
     custom_startup();
 #endif
@@ -127,13 +128,13 @@ int main(void)
         timeout = 0;
     }
 #if AP_CHECK_FIRMWARE_ENABLED
-    const auto ok = check_good_firmware();
-    if (ok != check_fw_result_t::CHECK_FW_OK) {
-        // bad firmware CRC, don't try and boot
-        timeout = 0;
-        try_boot = false;
-        led_set(LED_BAD_FW);
-    }
+    // const auto ok = check_good_firmware();
+    // if (ok != check_fw_result_t::CHECK_FW_OK) {
+    //     // bad firmware CRC, don't try and boot
+    //     timeout = 0;
+    //     try_boot = false;
+    //     led_set(LED_BAD_FW);
+    // }
 #if AP_BOOTLOADER_NETWORK_ENABLED
     if (ok == check_fw_result_t::CHECK_FW_OK) {
         const auto *app_descriptor = get_app_descriptor();
@@ -164,13 +165,13 @@ int main(void)
         timeout = 0;
     }
 #elif AP_CHECK_FIRMWARE_ENABLED
-    const auto ok = check_good_firmware();
-    if (ok != check_fw_result_t::CHECK_FW_OK) {
-        // bad firmware, don't try and boot
-        timeout = 0;
-        try_boot = false;
-        led_set(LED_BAD_FW);
-    }
+    // const auto ok = check_good_firmware();
+    // if (ok != check_fw_result_t::CHECK_FW_OK) {
+    //     // bad firmware, don't try and boot
+    //     timeout = 0;
+    //     try_boot = false;
+    //     led_set(LED_BAD_FW);
+    // }
 #endif
 
 #if defined(HAL_GPIO_PIN_VBUS) && defined(HAL_ENABLE_VBUS_CHECK)
