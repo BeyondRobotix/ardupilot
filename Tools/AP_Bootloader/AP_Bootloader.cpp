@@ -21,11 +21,12 @@
   boards. Instead it uses the ChibiOS APIs directly
  */
 
-#include <AP_HAL/AP_HAL.h>
+// #include <AP_HAL/AP_HAL.h>
 #include "ch.h"
-#include "hal.h"
+// #include "hal.h"
 #include "hwdef.h"
-#include <AP_HAL_ChibiOS/hwdef/common/usbcfg.h>
+
+// #include <AP_HAL_ChibiOS/hwdef/common/usbcfg.h>
 #include <AP_HAL_ChibiOS/hwdef/common/stm32_util.h>
 #include <AP_HAL_ChibiOS/hwdef/common/watchdog.h>
 #include "support.h"
@@ -68,7 +69,23 @@ static BL_Network network;
 
 int main(void)
 {
-    printf("Start");
+    // #ifndef APP_START_ADDRESS
+    // #define APP_START_ADDRESS (FLASH_LOAD_ADDRESS + (FLASH_BOOTLOADER_LOAD_KB + APP_START_OFFSET_KB)*1024U)
+    // #endif
+
+    // chSysLock();
+    // rccDisableAPB1R1(~0);
+    // rccDisableAPB1R2(~0);
+    // // port_disable();
+
+    // const uint32_t *app_base = (const uint32_t *)(APP_START_ADDRESS);
+
+    // asm volatile("mov sp, %0" : : "r"(app_base[0]));
+    // asm volatile("msr msp, %0" : : "r"(app_base[0]));  // Set Main Stack Pointer
+
+    // // Jump to the application entry point
+    // asm volatile("bx %0" : : "r"(app_base[1]));  // Jump to the application
+
 #ifdef AP_BOOTLOADER_CUSTOM_HERE4
     custom_startup();
 #endif

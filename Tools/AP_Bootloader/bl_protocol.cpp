@@ -39,11 +39,11 @@
  *
  ****************************************************************************/
 
-#include <AP_HAL/AP_HAL.h>
+// #include <AP_HAL/AP_HAL.h>
 #include <AP_Math/AP_Math.h>
 #include <AP_Math/crc.h>
 #include "ch.h"
-#include "hal.h"
+// #include "hal.h"
 #include "hwdef.h"
 
 #include "bl_protocol.h"
@@ -134,18 +134,6 @@
 // interrupt vector table for STM32
 #define SCB_VTOR 0xE000ED08
 
-static virtual_timer_t systick_vt;
-
-/*
-  millisecond timer array
- */
-#define NTIMERS		    2
-#define TIMER_BL_WAIT	0
-#define TIMER_LED	    1
-
-static enum led_state led_state;
-
-volatile unsigned timer[NTIMERS];
 
 // keep back 32 bytes at the front of flash. This is long enough to allow for aligned
 // access on STM32H7
@@ -160,60 +148,6 @@ extern AP_FlashIface_JEDEC ext_flash;
 #define BOOT_FROM_EXT_FLASH 0
 #endif
 
-/*
-  1ms timer tick callback
- */
-static void sys_tick_handler(virtual_timer_t* vt, void *ctx)
-{
-    chSysLockFromISR();
-    chVTSetI(&systick_vt, chTimeMS2I(1), sys_tick_handler, nullptr);
-    chSysUnlockFromISR();
-    uint8_t i;
-    for (i = 0; i < NTIMERS; i++)
-        if (timer[i] > 0) {
-            timer[i]--;
-        }
-
-    if ((led_state == LED_BLINK) && (timer[TIMER_LED] == 0)) {
-        led_toggle(LED_BOOTLOADER);
-        timer[TIMER_LED] = 50;
-    }
-
-    if ((led_state == LED_BAD_FW) && (timer[TIMER_LED] == 0)) {
-        led_toggle(LED_BOOTLOADER);
-        timer[TIMER_LED] = 1000;
-    }
-}
-
-static void delay(unsigned msec)
-{
-    chThdSleep(chTimeMS2I(msec));
-}
-
-void
-led_set(enum led_state state)
-{
-    led_state = state;
-
-    switch (state) {
-    case LED_OFF:
-        led_off(LED_BOOTLOADER);
-        break;
-
-    case LED_ON:
-        led_on(LED_BOOTLOADER);
-        break;
-
-    case LED_BLINK:
-        /* restart the blink state machine ASAP */
-        timer[TIMER_LED] = 0;
-        break;
-
-    case LED_BAD_FW:
-        timer[TIMER_LED] = 0;
-        break;
-    }
-}
 #define RCC_AHB1ENR    (*(volatile uint32_t*)0x40021014)  // AHB1 peripheral clock enable register
 #define RCC_AHB2ENR    (*(volatile uint32_t*)0x40021018)  // AHB2 peripheral clock enable register
 
@@ -229,30 +163,32 @@ do_jump(uint32_t stacktop, uint32_t entrypoint)
     SCB_DisableICache();
 #endif
 
-    // chSysLock();
+    chSysLock();
 
 
     // RCC->CR &= ~(RCC_CR_HSEON | RCC_CR_HSEBYP); // Turn off HSE (if it was enabled)
     // RCC->CR &= ~RCC_CR_PLLON;                   // Turn off PLL
-    // RCC->CFGR &= ~RCC_CFGR_SW;                  // Clear system clock source
+    RCC->CFGR &= ~RCC_CFGR_SW;                  // Clear system clock source
 
-    // // Reset AHB1, AHB2, APB1, APB2 peripherals by clearing the enable bits
-    // RCC_AHB1ENR = 0;
-    // RCC_AHB2ENR = 0;
+    //Reset AHB1, AHB2, APB1, APB2 peripherals by clearing the enable bits
+    RCC_AHB1ENR = 0;
+    RCC_AHB2ENR = 0;
 
-    // __disable_irq();  // Disable interrupts globally
+    __disable_irq();  // Disable interrupts globally
+    __enable_irq();
 
-    // // Reset the NVIC (nested vectored interrupt controller)
-    // for (int i = 0; i < 8; i++) {
-    //     NVIC->ICER[i] = 0xFFFFFFFF;  // Clear interrupt enable registers
-    //     NVIC->ICPR[i] = 0xFFFFFFFF;  // Clear interrupt pending registers
-    // }
+    // Reset the NVIC (nested vectored interrupt controller)
+    for (int i = 0; i < 8; i++) {
+        NVIC->ICER[i] = 0xFFFFFFFF;  // Clear interrupt enable registers
+        NVIC->ICPR[i] = 0xFFFFFFFF;  // Clear interrupt pending registers
+    }
 
     // RCC_AHB1ENR &= ~(1 << 0); // Disable GPIOA
     // RCC_AHB1ENR &= ~(1 << 1); // Disable GPIOB
     // RCC_AHB1ENR &= ~(1 << 2); // Disable GPIOC
     // RCC_AHB2ENR &= ~(1 << 7); // Disable GPIOH
 
+    chSysUnlock();
 
     // we set sp as well as msp to avoid an issue with loading NuttX
     // Set the stack pointer to the application stack
@@ -280,7 +216,7 @@ jump_to_app()
     const auto ok = check_good_firmware();
     if (ok != check_fw_result_t::CHECK_FW_OK) {
         // bad firmware, don't try and boot
-        led_set(LED_BAD_FW);
+        
         return;
     }
 #endif
@@ -333,19 +269,11 @@ jump_to_app()
     stm32_watchdog_pat();
 #endif
 
-    flash_set_keep_unlocked(false);
+    flash_set_keep_unlocked(true);
     
-    led_set(LED_OFF);
+    
 
-        led_set(LED_OFF);
-    delay(200);
-    led_set(LED_ON);
-    delay(200);
-    led_set(LED_OFF);
-    delay(200);
-    led_set(LED_ON);
-
-//     // resetting the clocks is needed for loading NuttX
+    // resetting the clocks is needed for loading NuttX
 // #if defined(STM32H7)
 //     rccDisableAPB1L(~0);
 //     rccDisableAPB1H(~0);
@@ -373,7 +301,7 @@ jump_to_app()
     
 
 
-    // // disable all interrupt sources
+    // disable all interrupt sources
     // port_disable();
 
     /* switch exception handlers to the application */
@@ -443,57 +371,6 @@ cout_word(uint32_t val)
 
 #define TEST_FLASH 0
 
-#if TEST_FLASH
-static void test_flash()
-{
-    uint32_t loop = 1;
-    bool init_done = false;
-    while (true) {
-        uint32_t addr = 0;
-        uint32_t page = 0;
-        while (true) {
-            uint32_t v[8];
-            for (uint8_t i=0; i<8; i++) {
-                v[i] = (page<<16) + loop;
-            }
-            if (flash_func_sector_size(page) == 0) {
-                continue;
-            }
-            uint32_t num_writes = flash_func_sector_size(page) / sizeof(v);
-            uprintf("page %u size %u addr=0x%08x v=0x%08x\n",
-                    unsigned(page), unsigned(flash_func_sector_size(page)), unsigned(addr), unsigned(v[0])); delay(10);
-            if (init_done) {
-                for (uint32_t j=0; j<flash_func_sector_size(page)/4; j++) {
-                    uint32_t v1 = (page<<16) + (loop-1);
-                    uint32_t v2 = flash_func_read_word(addr+j*4);
-                    if (v2 != v1) {
-                        uprintf("read error at 0x%08x v=0x%08x v2=0x%08x\n", unsigned(addr+j*4), unsigned(v1), unsigned(v2));
-                        break;
-                    }
-                }
-            }
-            if (!flash_func_erase_sector(page)) {
-                uprintf("erase of %u failed\n", unsigned(page));
-            }
-            for (uint32_t j=0; j<num_writes; j++) {
-                if (!flash_func_write_words(addr+j*sizeof(v), v, ARRAY_SIZE(v))) {
-                    uprintf("write failed at 0x%08x\n", unsigned(addr+j*sizeof(v)));
-                    break;
-                }
-            }
-            addr += flash_func_sector_size(page);
-            page++;
-            if (flash_func_sector_size(page) == 0) {
-                break;
-            }
-        }
-        init_done = true;
-        delay(1000);
-        loop++;
-    }
-}
-#endif
-
 void
 bootloader(unsigned timeout)
 {
@@ -510,27 +387,9 @@ bootloader(unsigned timeout)
     bool done_sync = false;
     uint8_t done_get_device_flags = 0;
     bool done_erase = false;
-    static bool done_timer_init;
     unsigned original_timeout = timeout;
 
     memset(first_words, 0xFF, sizeof(first_words));
-
-    if (!done_timer_init) {
-        done_timer_init = true;
-        chVTObjectInit(&systick_vt);
-        chVTSet(&systick_vt, chTimeMS2I(1), sys_tick_handler, nullptr);
-    }
-
-    /* if we are working with a timeout, start it running */
-    if (timeout) {
-        timer[TIMER_BL_WAIT] = timeout;
-    }
-
-    /* make the LED blink while we are idle */
-    // ensure we don't override BAD FW LED
-    if (led_state != LED_BAD_FW) {
-        led_set(LED_BLINK);
-    }
 
     while (true) {
         volatile int c;
@@ -548,14 +407,6 @@ bootloader(unsigned timeout)
 #if defined(BOOTLOADER_FORWARD_OTG2_SERIAL)
             bool ser_forward_active = update_otg2_serial_forward();
 #endif
-            if (timeout && !timer[TIMER_BL_WAIT]
-#if defined(BOOTLOADER_FORWARD_OTG2_SERIAL)
-            // do serial forward only when idle
-            && !ser_forward_active
-#endif
-            ) {
-                return;
-            }
 
             /* try to get a byte from the host */
             c = cin(0);
@@ -678,7 +529,7 @@ bootloader(unsigned timeout)
 
             // clear the bootloader LED while erasing - it stops blinking at random
             // and that's confusing
-            led_set(LED_OFF);
+            
 
             // erase all sectors
             for (uint16_t i = 0; flash_func_sector_size(i) != 0; i++) {
@@ -692,7 +543,7 @@ bootloader(unsigned timeout)
             }
 
             // enable the LED while verifying the erase
-            led_set(LED_ON);
+            
 
             // verify the erase
             for (address = 0; address < board_info.fw_size; address += 4) {
@@ -704,7 +555,7 @@ bootloader(unsigned timeout)
             address = 0;
 
             // resume blinking
-            led_set(LED_BLINK);
+            
             break;
 
         // program data from start of the flash
@@ -715,152 +566,7 @@ bootloader(unsigned timeout)
         // readback failure:	INSYNC/FAILURE
         //
         case PROTO_EXTF_ERASE:
-#if EXT_FLASH_SIZE_MB
         {
-            if (!done_sync || !CHECK_GET_DEVICE_FINISHED(done_get_device_flags)) {
-                // lower chance of random data on a uart triggering erase
-                goto cmd_bad;
-            }
-            uint32_t cmd_erase_bytes;
-            if (cin_word(&cmd_erase_bytes, 100)) {
-                goto cmd_bad;
-            }
-
-            // expect EOC
-            if (!wait_for_eoc(2)) {
-                goto cmd_bad;
-            }
-            uint32_t erased_bytes = 0;
-            uint32_t sector_number = EXT_FLASH_RESERVE_START_KB * 1024 / ext_flash.get_sector_size();
-            uint8_t pct_done = 0;
-            if (cmd_erase_bytes > (ext_flash.get_sector_size() * ext_flash.get_sector_count())) {
-                uprintf("Requested to erase more than we can\n");
-                goto cmd_bad;
-            }
-            uprintf("Erase Command Received\n");
-            sync_response();
-            cout(&pct_done, sizeof(pct_done));
-            // Flash all sectors that encompass the erase_bytes
-            while (erased_bytes < cmd_erase_bytes) {
-                uint32_t delay_ms = 0, timeout_ms = 0;
-                if (!ext_flash.start_sector_erase(sector_number, delay_ms, timeout_ms)) {
-                    goto cmd_fail;
-                }
-                uint32_t next_check_ms = AP_HAL::millis() + delay_ms;
-                while (true) {
-                    cout(&pct_done, sizeof(pct_done));
-                    if (AP_HAL::millis() > next_check_ms) {
-                        if (!ext_flash.is_device_busy()) {
-                            pct_done = erased_bytes*100/cmd_erase_bytes;
-                            uprintf("PCT DONE: %d\n", pct_done);
-                            break;
-                        }
-                        if ((AP_HAL::millis() + timeout_ms) > next_check_ms) {
-                            // We are out of time, return error
-                            goto cmd_fail;
-                        }
-                        next_check_ms = AP_HAL::millis()+delay_ms;
-                    }
-                    chThdSleep(chTimeMS2I(delay_ms));
-                }
-                erased_bytes += ext_flash.get_sector_size();
-                sector_number++;
-            }
-            pct_done = 100;
-            extf_address = 0;
-            cout(&pct_done, sizeof(pct_done));
-        }
-#else
-            goto cmd_bad;
-#endif // EXT_FLASH_SIZE_MB
-            break;
-
-        // program bytes at current external flash address
-        //
-        // command:		PROG_MULTI/<len:1>/<data:len>/EOC
-        // success reply:	INSYNC/OK
-        // invalid reply:	INSYNC/INVALID
-        // readback failure:	INSYNC/FAILURE
-        //
-        case PROTO_EXTF_PROG_MULTI:
-        {
-#if EXT_FLASH_SIZE_MB
-            if (!done_sync || !CHECK_GET_DEVICE_FINISHED(done_get_device_flags)) {
-                // lower chance of random data on a uart triggering erase
-                goto cmd_bad;
-            }
-
-            // expect count
-            led_set(LED_OFF);
-
-            arg = cin(50);
-
-            if (arg < 0) {
-                goto cmd_bad;
-            }
-
-            if ((extf_address + arg) > board_info.extf_size) {
-                goto cmd_bad;
-            }
-
-            if (arg > sizeof(flash_buffer.c)) {
-                goto cmd_bad;
-            }
-
-            for (int i = 0; i < arg; i++) {
-                c = cin(1000);
-
-                if (c < 0) {
-                    goto cmd_bad;
-                }
-
-                flash_buffer.c[i] = c;
-            }
-
-            if (!wait_for_eoc(200)) {
-                goto cmd_bad;
-            }
-
-            uint32_t offset = 0;
-            uint32_t size = arg;
-#if BOOT_FROM_EXT_FLASH
-            // save the first words and don't program it until everything else is done
-            if (extf_address < sizeof(first_words)) {
-                uint8_t n = MIN(sizeof(first_words)-extf_address, arg);
-                memcpy(&first_words[extf_address/4], &flash_buffer.w[0], n);
-                // replace first words with 1 bits we can overwrite later
-                memset(&flash_buffer.w[0], 0xFF, n);
-            }
-#endif
-            uint32_t programming;
-            uint32_t delay_us = 0, timeout_us = 0;
-            uint64_t start_time_us;
-            while (true) {
-                if (size == 0) {
-                    extf_address += arg;
-                    break;
-                }
-                if (!ext_flash.start_program_offset(extf_address+offset+EXT_FLASH_RESERVE_START_KB*1024,
-                    &flash_buffer.c[offset], size, programming, delay_us, timeout_us)) {
-                    // uprintf("ext flash write command failed\n");
-                    goto cmd_fail;
-                }
-                start_time_us = AP_HAL::micros64();
-                // prepare for next run
-                offset += programming;
-                size -= programming;
-                while (true) {
-                    if (AP_HAL::micros64() > (start_time_us+delay_us)) {
-                        if (!ext_flash.is_device_busy()) {
-                            // uprintf("flash program Successful, elapsed %ld us\n", uint32_t(AP_HAL::micros64() - start_time_us));
-                            break;
-                        } else {
-                            // uprintf("Typical flash program time reached, Still Busy?!\n");
-                        }
-                    }
-                }
-            }
-#endif
             break;
         }
 
@@ -878,7 +584,7 @@ bootloader(unsigned timeout)
             }
 
             // expect count
-            led_set(LED_OFF);
+            
 
             arg = cin(50);
 
@@ -1086,50 +792,6 @@ bootloader(unsigned timeout)
         }
         break;
 
-#ifdef BOOT_DELAY_ADDRESS
-
-        case PROTO_SET_DELAY: {
-            /*
-              Allow for the bootloader to setup a
-              boot delay signature which tells the
-              board to delay for at least a
-              specified number of seconds on boot.
-             */
-            int v = cin(100);
-
-            if (v < 0) {
-                goto cmd_bad;
-            }
-
-            uint8_t boot_delay = v & 0xFF;
-
-            if (boot_delay > BOOT_DELAY_MAX) {
-                goto cmd_bad;
-            }
-
-            // expect EOC
-            if (!wait_for_eoc(2)) {
-                goto cmd_bad;
-            }
-
-            uint32_t sig1 = flash_func_read_word(BOOT_DELAY_ADDRESS);
-            uint32_t sig2 = flash_func_read_word(BOOT_DELAY_ADDRESS + 4);
-
-            if (sig1 != BOOT_DELAY_SIGNATURE1 ||
-                sig2 != BOOT_DELAY_SIGNATURE2) {
-                goto cmd_bad;
-            }
-
-            uint32_t value = (BOOT_DELAY_SIGNATURE1 & 0xFFFFFF00) | boot_delay;
-            flash_func_write_word(BOOT_DELAY_ADDRESS, value);
-
-            if (flash_func_read_word(BOOT_DELAY_ADDRESS) != value) {
-                goto cmd_fail;
-            }
-        }
-        break;
-#endif
-
         case PROTO_READ_MULTI: {
             arg = cin(50);
             if (arg < 0) {
@@ -1177,24 +839,6 @@ bootloader(unsigned timeout)
                     goto cmd_fail;
                 }
 #else
-                uint32_t programming;
-                uint32_t delay_us;
-                uint32_t timeout_us;
-                if (!ext_flash.start_program_offset(EXT_FLASH_RESERVE_START_KB*1024, (const uint8_t*)first_words, sizeof(first_words), programming, delay_us, timeout_us)) {
-                    // uprintf("ext flash write command failed\n");
-                    goto cmd_fail;
-                }
-                uint64_t start_time_us = AP_HAL::micros64();
-                while (true) {
-                    if (AP_HAL::micros64() > (start_time_us+delay_us)) {
-                        if (!ext_flash.is_device_busy()) {
-                            // uprintf("flash program Successful, elapsed %ld us\n", uint32_t(AP_HAL::micros64() - start_time_us));
-                            break;
-                        } else {
-                            // uprintf("Typical flash program time reached, Still Busy?!\n");
-                        }
-                    }
-                }
 #endif
                 // revert in case the flash was bad...
                 memset(first_words, 0xff, sizeof(first_words));
@@ -1202,7 +846,6 @@ bootloader(unsigned timeout)
 
             // send a sync and wait for it to be collected
             sync_response();
-            delay(100);
 
             // quiesce and jump to the app
             return;
@@ -1229,8 +872,6 @@ bootloader(unsigned timeout)
 
             // send the sync response for this command
             sync_response();
-
-            delay(5);
 
             // set the baudrate
             port_setbaud(baud);
