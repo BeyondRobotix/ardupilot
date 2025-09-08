@@ -21,7 +21,7 @@ define GPS_MOVING_BASELINE 1
 
 # restrict backends available to save flash (i.e. only UBLOX)
 define AP_GPS_NOVA_ENABLED 0
-define AP_GPS_SBF_ENABLED 0
+define AP_GPS_SBF_ENABLED 1
 define AP_GPS_GSOF_ENABLED 0
 
 # ---------------------- COMPASS ---------------------------
