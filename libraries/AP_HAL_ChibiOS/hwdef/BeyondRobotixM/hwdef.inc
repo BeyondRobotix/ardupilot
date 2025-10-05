@@ -16,7 +16,7 @@ STM32_ST_USE_TIMER 15
 define CH_CFG_ST_RESOLUTION 16
 
 # board ID. See Tools/AP_Bootloader/board_types.txt
-APJ_BOARD_ID 4600
+APJ_BOARD_ID AP_HW_BEYOND_ROBOTIX_ML431_NODE
 
 # crystal frequency
 OSCILLATOR_HZ 8000000
@@ -99,4 +99,3 @@ define HAL_PERIPH_LISTEN_FOR_SERIAL_UART_REBOOT_CMD_PORT 0
 # to uncompress the bootloader at runtime
 env ROMFS_UNCOMPRESSED True
 
-define HAL_RCIN_THREAD_ENABLED 1

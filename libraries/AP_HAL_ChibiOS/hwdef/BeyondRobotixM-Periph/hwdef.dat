@@ -1,5 +1,5 @@
 include ../BeyondRobotixM/hwdef.inc
-
+USE_BOOTLOADER_FROM_BOARD BeyondRobotixM
 
 # --------------------- PWM -----------------------
 PA8   TIM1_CH1  TIM1 PWM(1) GPIO(50)
@@ -9,24 +9,15 @@ PA11  TIM1_CH4  TIM1 PWM(4) GPIO(53)
 
 # ----------------------- GPS ----------------------------
 define AP_PERIPH_GPS_ENABLED 1
-define GPS_MAX_RATE_MS 200
-
-define GPS_MAX_RECEIVERS 1
-define GPS_MAX_INSTANCES 1
-
+define AP_GPS_DEBUG_LOGGING_ENABLED 0
 define HAL_PERIPH_GPS_PORT_DEFAULT 2
 
 # allow for F9P GPS modules with moving baseline
 define GPS_MOVING_BASELINE 1
 
-# restrict backends available to save flash (i.e. only UBLOX)
 define AP_GPS_NOVA_ENABLED 0
 define AP_GPS_SBF_ENABLED 1
 define AP_GPS_GSOF_ENABLED 0
-
-# ---------------------- COMPASS ---------------------------
-define AP_PERIPH_MAG_ENABLED 0
-
 
 # --------------------- Barometer ---------------------------
 define AP_PERIPH_BARO_ENABLED 1
@@ -40,10 +31,6 @@ define AP_PERIPH_AIRSPEED_ENABLED 1
 # MS4525 sensor by default
 define HAL_AIRSPEED_TYPE_DEFAULT 1
 define AIRSPEED_MAX_SENSORS 1
-
-# -------------------- MSP --------------------------------
-define AP_PERIPH_MSP_ENABLED 0
-define HAL_MSP_ENABLED 0
 
 # ------------------ BATTERY Monitor -----------------------
 define AP_PERIPH_BATTERY_ENABLED 1
