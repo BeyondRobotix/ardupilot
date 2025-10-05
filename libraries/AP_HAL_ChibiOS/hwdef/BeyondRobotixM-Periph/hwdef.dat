@@ -18,24 +18,7 @@ define HAL_PERIPH_GPS_PORT_DEFAULT 2
 # allow for F9P GPS modules with moving baseline
 define GPS_MOVING_BASELINE 1
 
-<<<<<<< HEAD
 define AP_GPS_SBF_ENABLED 1
-=======
-# restrict backends available to save flash (i.e. only UBLOX)
-define AP_GPS_NOVA_ENABLED 0
-define AP_GPS_SBF_ENABLED 0
-define AP_GPS_GSOF_ENABLED 0
-
-# ---------------------- COMPASS ---------------------------
-define AP_PERIPH_MAG_ENABLED 0
-
-
-# --------------------- Barometer ---------------------------
-define AP_PERIPH_BARO_ENABLED 1
-define HAL_BARO_ALLOW_INIT_NO_BARO
-
-BARO SPL06 I2C:0:0x76
->>>>>>> parent of e00dc74f42 (enable sbf)
 
 # ------------------ I2C airspeed -------------------------
 define AP_PERIPH_AIRSPEED_ENABLED 1
