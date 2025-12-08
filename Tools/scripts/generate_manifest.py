@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 '''
 AP_FLAKE8_CLEAN
@@ -25,7 +25,7 @@ else:
     running_python310 = True
 
 FIRMWARE_TYPES = ["AntennaTracker", "Copter", "Plane", "Rover", "Sub", "AP_Periph", "Blimp"]
-RELEASE_TYPES = ["beta", "beta-4.3", "latest", "stable", "stable-*", "dirty"]
+RELEASE_TYPES = ["beta", "latest", "stable", "stable-*", "dirty"]
 
 # mapping for board names to brand name and manufacturer
 brand_map = {
@@ -110,6 +110,7 @@ brand_map = {
     "MicoAir743" : ("MicoAir H743 v1.3", "MicoAir"),
     "MicoAir743-AIO" : ("MicoAir H743 AIO", "MicoAir"),
     "MicoAir743v2" : ("MicoAir H743 v2.0", "MicoAir"),
+    "MicoAir743-Lite" : ("MicoAir H743 Lite v1.1", "MicoAir"),
     "GEPRCF745BTHD": ("TAKER F745 BT", "GEPRC"),
     "GEPRC_TAKER_H743": ("TAKER H743 BT", "GEPRC"),
 }
@@ -523,7 +524,7 @@ class ManifestGenerator():
                 tag = firstlevel
                 if not self.valid_release_type(tag):
                     print("Unknown tag (%s) in directory (%s)" %
-                          (tag, os.path.join(vdir)), file=sys.stderr)
+                          (tag, os.path.join(*vdir)), file=sys.stderr)
                     continue
                 tag_path = os.path.join(basedir, vehicletype, tag)
                 if not os.path.isdir(tag_path):
