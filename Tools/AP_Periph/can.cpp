@@ -230,106 +230,106 @@ void AP_Periph_FW::handle_get_node_info(CanardInstance* canard_instance,
  */
 void AP_Periph_FW::handle_param_getset(CanardInstance* canard_instance, CanardRxTransfer* transfer)
 {
-    // param fetch all can take a long time, so pat watchdog
-    stm32_watchdog_pat();
+//     // param fetch all can take a long time, so pat watchdog
+//     stm32_watchdog_pat();
 
-    uavcan_protocol_param_GetSetRequest req;
-    if (uavcan_protocol_param_GetSetRequest_decode(transfer, &req)) {
-        return;
-    }
+//     uavcan_protocol_param_GetSetRequest req;
+//     if (uavcan_protocol_param_GetSetRequest_decode(transfer, &req)) {
+//         return;
+//     }
 
-    uavcan_protocol_param_GetSetResponse pkt {};
+//     uavcan_protocol_param_GetSetResponse pkt {};
 
-    AP_Param *vp;
-    enum ap_var_type ptype;
+//     AP_Param *vp;
+//     enum ap_var_type ptype;
 
-    if (req.name.len != 0 && req.name.len > AP_MAX_NAME_SIZE) {
-        vp = nullptr;
-    } else if (req.name.len != 0 && req.name.len <= AP_MAX_NAME_SIZE) {
-        memcpy((char *)pkt.name.data, (char *)req.name.data, req.name.len);
-#if AP_PERIPH_GPS_TYPE_COMPATABILITY_ENABLED
-        // cope with older versions of ArduPilot attempting to
-        // auto-configure AP_Periph using "GPS_TYPE" by
-        // auto-converting to "GPS1_TYPE":
-        if (strncmp((char*)req.name.data, "GPS_TYPE", req.name.len) == 0) {
-            vp = AP_Param::find("GPS1_TYPE", &ptype);
-        } else {
-            vp = AP_Param::find((char *)pkt.name.data, &ptype);
-        }
-#else
-        vp = AP_Param::find((char *)pkt.name.data, &ptype);
-#endif
-    } else {
-        AP_Param::ParamToken token {};
-        vp = AP_Param::find_by_index(req.index, &ptype, &token);
-        if (vp != nullptr) {
-            vp->copy_name_token(token, (char *)pkt.name.data, AP_MAX_NAME_SIZE+1, true);
-        }
-    }
-    if (vp != nullptr && req.name.len != 0 && req.value.union_tag != UAVCAN_PROTOCOL_PARAM_VALUE_EMPTY) {
-        // param set
-        switch (ptype) {
-        case AP_PARAM_INT8:
-            if (req.value.union_tag != UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE) {
-                return;
-            }
-            ((AP_Int8 *)vp)->set_and_save_ifchanged(req.value.integer_value);
-            break;
-        case AP_PARAM_INT16:
-            if (req.value.union_tag != UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE) {
-                return;
-            }
-            ((AP_Int16 *)vp)->set_and_save_ifchanged(req.value.integer_value);
-            break;
-        case AP_PARAM_INT32:
-            if (req.value.union_tag != UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE) {
-                return;
-            }
-            ((AP_Int32 *)vp)->set_and_save_ifchanged(req.value.integer_value);
-            break;
-        case AP_PARAM_FLOAT:
-            if (req.value.union_tag != UAVCAN_PROTOCOL_PARAM_VALUE_REAL_VALUE) {
-                return;
-            }
-            ((AP_Float *)vp)->set_and_save_ifchanged(req.value.real_value);
-            break;
-        default:
-            return;
-        }
-    }
-    if (vp != nullptr) {
-        switch (ptype) {
-        case AP_PARAM_INT8:
-            pkt.value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE;
-            pkt.value.integer_value = ((AP_Int8 *)vp)->get();
-            break;
-        case AP_PARAM_INT16:
-            pkt.value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE;
-            pkt.value.integer_value = ((AP_Int16 *)vp)->get();
-            break;
-        case AP_PARAM_INT32:
-            pkt.value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE;
-            pkt.value.integer_value = ((AP_Int32 *)vp)->get();
-            break;
-        case AP_PARAM_FLOAT:
-            pkt.value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_REAL_VALUE;
-            pkt.value.real_value = ((AP_Float *)vp)->get();
-            break;
-        default:
-            return;
-        }
-        pkt.name.len = strnlen((char *)pkt.name.data, sizeof(pkt.name.data));
-    }
+//     if (req.name.len != 0 && req.name.len > AP_MAX_NAME_SIZE) {
+//         vp = nullptr;
+//     } else if (req.name.len != 0 && req.name.len <= AP_MAX_NAME_SIZE) {
+//         memcpy((char *)pkt.name.data, (char *)req.name.data, req.name.len);
+// #if AP_PERIPH_GPS_TYPE_COMPATABILITY_ENABLED
+//         // cope with older versions of ArduPilot attempting to
+//         // auto-configure AP_Periph using "GPS_TYPE" by
+//         // auto-converting to "GPS1_TYPE":
+//         if (strncmp((char*)req.name.data, "GPS_TYPE", req.name.len) == 0) {
+//             vp = AP_Param::find("GPS1_TYPE", &ptype);
+//         } else {
+//             vp = AP_Param::find((char *)pkt.name.data, &ptype);
+//         }
+// #else
+//         vp = AP_Param::find((char *)pkt.name.data, &ptype);
+// #endif
+//     } else {
+//         AP_Param::ParamToken token {};
+//         vp = AP_Param::find_by_index(req.index, &ptype, &token);
+//         if (vp != nullptr) {
+//             vp->copy_name_token(token, (char *)pkt.name.data, AP_MAX_NAME_SIZE+1, true);
+//         }
+//     }
+//     if (vp != nullptr && req.name.len != 0 && req.value.union_tag != UAVCAN_PROTOCOL_PARAM_VALUE_EMPTY) {
+//         // param set
+//         switch (ptype) {
+//         case AP_PARAM_INT8:
+//             if (req.value.union_tag != UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE) {
+//                 return;
+//             }
+//             ((AP_Int8 *)vp)->set_and_save_ifchanged(req.value.integer_value);
+//             break;
+//         case AP_PARAM_INT16:
+//             if (req.value.union_tag != UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE) {
+//                 return;
+//             }
+//             ((AP_Int16 *)vp)->set_and_save_ifchanged(req.value.integer_value);
+//             break;
+//         case AP_PARAM_INT32:
+//             if (req.value.union_tag != UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE) {
+//                 return;
+//             }
+//             ((AP_Int32 *)vp)->set_and_save_ifchanged(req.value.integer_value);
+//             break;
+//         case AP_PARAM_FLOAT:
+//             if (req.value.union_tag != UAVCAN_PROTOCOL_PARAM_VALUE_REAL_VALUE) {
+//                 return;
+//             }
+//             ((AP_Float *)vp)->set_and_save_ifchanged(req.value.real_value);
+//             break;
+//         default:
+//             return;
+//         }
+//     }
+//     if (vp != nullptr) {
+//         switch (ptype) {
+//         case AP_PARAM_INT8:
+//             pkt.value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE;
+//             pkt.value.integer_value = ((AP_Int8 *)vp)->get();
+//             break;
+//         case AP_PARAM_INT16:
+//             pkt.value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE;
+//             pkt.value.integer_value = ((AP_Int16 *)vp)->get();
+//             break;
+//         case AP_PARAM_INT32:
+//             pkt.value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE;
+//             pkt.value.integer_value = ((AP_Int32 *)vp)->get();
+//             break;
+//         case AP_PARAM_FLOAT:
+//             pkt.value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_REAL_VALUE;
+//             pkt.value.real_value = ((AP_Float *)vp)->get();
+//             break;
+//         default:
+//             return;
+//         }
+//         pkt.name.len = strnlen((char *)pkt.name.data, sizeof(pkt.name.data));
+//     }
 
-    uint8_t buffer[UAVCAN_PROTOCOL_PARAM_GETSET_RESPONSE_MAX_SIZE];
-    uint16_t total_size = uavcan_protocol_param_GetSetResponse_encode(&pkt, buffer, !canfdout());
+    // uint8_t buffer[UAVCAN_PROTOCOL_PARAM_GETSET_RESPONSE_MAX_SIZE];
+    // uint16_t total_size = uavcan_protocol_param_GetSetResponse_encode(&pkt, buffer, !canfdout());
 
-    canard_respond(canard_instance,
-                   transfer,
-                   UAVCAN_PROTOCOL_PARAM_GETSET_SIGNATURE,
-                   UAVCAN_PROTOCOL_PARAM_GETSET_ID,
-                   &buffer[0],
-                   total_size);
+    // canard_respond(canard_instance,
+    //                transfer,
+    //                UAVCAN_PROTOCOL_PARAM_GETSET_SIGNATURE,
+    //                UAVCAN_PROTOCOL_PARAM_GETSET_ID,
+    //                &buffer[0],
+    //                total_size);
 }
 
 /*
@@ -2003,26 +2003,26 @@ void AP_Periph_FW::can_update()
 // printf to CAN LogMessage for debugging
 void can_vprintf(uint8_t severity, const char *fmt, va_list ap)
 {
-    // map MAVLink levels to CAN levels
-    uint8_t level = UAVCAN_PROTOCOL_DEBUG_LOGLEVEL_DEBUG;
-    switch (severity) {
-    case MAV_SEVERITY_DEBUG:
-        level = UAVCAN_PROTOCOL_DEBUG_LOGLEVEL_DEBUG;
-        break;
-    case MAV_SEVERITY_INFO:
-        level = UAVCAN_PROTOCOL_DEBUG_LOGLEVEL_INFO;
-        break;
-    case MAV_SEVERITY_NOTICE:
-    case MAV_SEVERITY_WARNING:
-        level = UAVCAN_PROTOCOL_DEBUG_LOGLEVEL_WARNING;
-        break;
-    case MAV_SEVERITY_ERROR:
-    case MAV_SEVERITY_CRITICAL:
-    case MAV_SEVERITY_ALERT:
-    case MAV_SEVERITY_EMERGENCY:
-        level = UAVCAN_PROTOCOL_DEBUG_LOGLEVEL_ERROR;
-        break;
-    }
+    // // map MAVLink levels to CAN levels
+    // uint8_t level = UAVCAN_PROTOCOL_DEBUG_LOGLEVEL_DEBUG;
+    // switch (severity) {
+    // case MAV_SEVERITY_DEBUG:
+    //     level = UAVCAN_PROTOCOL_DEBUG_LOGLEVEL_DEBUG;
+    //     break;
+    // case MAV_SEVERITY_INFO:
+    //     level = UAVCAN_PROTOCOL_DEBUG_LOGLEVEL_INFO;
+    //     break;
+    // case MAV_SEVERITY_NOTICE:
+    // case MAV_SEVERITY_WARNING:
+    //     level = UAVCAN_PROTOCOL_DEBUG_LOGLEVEL_WARNING;
+    //     break;
+    // case MAV_SEVERITY_ERROR:
+    // case MAV_SEVERITY_CRITICAL:
+    // case MAV_SEVERITY_ALERT:
+    // case MAV_SEVERITY_EMERGENCY:
+    //     level = UAVCAN_PROTOCOL_DEBUG_LOGLEVEL_ERROR;
+    //     break;
+    // }
 
 #if HAL_PERIPH_SUPPORT_LONG_CAN_PRINTF
     const uint8_t packet_count_max = 4; // how many packets we're willing to break up an over-sized string into
@@ -2054,19 +2054,19 @@ void can_vprintf(uint8_t severity, const char *fmt, va_list ap)
     }
     
 #else
-    uavcan_protocol_debug_LogMessage pkt {};
-    uint8_t buffer[UAVCAN_PROTOCOL_DEBUG_LOGMESSAGE_MAX_SIZE];
-    uint32_t n = vsnprintf((char*)pkt.text.data, sizeof(pkt.text.data), fmt, ap);
-    pkt.level.value = level;
-    pkt.text.len = MIN(n, sizeof(pkt.text.data));
+    // uavcan_protocol_debug_LogMessage pkt {};
+    // uint8_t buffer[UAVCAN_PROTOCOL_DEBUG_LOGMESSAGE_MAX_SIZE];
+    // uint32_t n = vsnprintf((char*)pkt.text.data, sizeof(pkt.text.data), fmt, ap);
+    // pkt.level.value = level;
+    // pkt.text.len = MIN(n, sizeof(pkt.text.data));
 
-    uint32_t len = uavcan_protocol_debug_LogMessage_encode(&pkt, buffer, !periph.canfdout());
+    // uint32_t len = uavcan_protocol_debug_LogMessage_encode(&pkt, buffer, !periph.canfdout());
 
-    periph.canard_broadcast(UAVCAN_PROTOCOL_DEBUG_LOGMESSAGE_SIGNATURE,
-                            UAVCAN_PROTOCOL_DEBUG_LOGMESSAGE_ID,
-                            CANARD_TRANSFER_PRIORITY_LOW,
-                            buffer,
-                            len);
+    // periph.canard_broadcast(UAVCAN_PROTOCOL_DEBUG_LOGMESSAGE_SIGNATURE,
+    //                         UAVCAN_PROTOCOL_DEBUG_LOGMESSAGE_ID,
+    //                         CANARD_TRANSFER_PRIORITY_LOW,
+    //                         buffer,
+    //                         len);
 
 #endif
 }
