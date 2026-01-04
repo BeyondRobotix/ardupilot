@@ -339,6 +339,9 @@ AP_HW_HWH7                           1223
 AP_HW_YARIV6X                        1234
 AP_HW_YARI_GNSS                      1235
 
+# IDs 1250-1259 reserved for Beyond Robotix
+AP_HW_BR_L431                        1250
+
 AP_HW_CBUnmanned-CM405-FC            1301
 
 AP_HW_KHA_ETH                        1315
