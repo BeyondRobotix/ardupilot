@@ -14,6 +14,14 @@
 #define AP_MAVLINK_FTP_MAX_SESSIONS 5
 #endif
 
+// size of the per-session read-ahead buffer used to batch filesystem
+// reads during BurstReadFile/ReadFile. One filesystem read of this
+// size is issued for every ~17 MAVLink packets served (at 239 B per
+// packet), which is much more efficient than a FatFs call per packet.
+#ifndef AP_MAVLINK_FTP_READAHEAD_SIZE
+#define AP_MAVLINK_FTP_READAHEAD_SIZE 4096
+#endif
+
 class GCS_FTP {
 public:
     static void handle_file_transfer_protocol(const mavlink_message_t &msg, mavlink_channel_t chan);
@@ -96,6 +104,19 @@ private:
         bool handle_request(Transaction &request, Transaction &reply);
 
         int close(void);
+
+    private:
+        // read-ahead buffer to amortise SD-card / FatFs overhead across
+        // many small FTP packets.
+        uint8_t  read_buf[AP_MAVLINK_FTP_READAHEAD_SIZE];
+        uint32_t read_buf_file_offset;
+        uint16_t read_buf_valid_bytes = 0;
+
+        // read up to size bytes at the given file offset into dest, serving
+        // from the read-ahead buffer when possible. Returns bytes read, 0
+        // at EOF, or -1 on error (errno set). Assumes fd is valid and mode
+        // is Read.
+        ssize_t read_at(uint32_t offset, uint8_t *dest, uint16_t size);
     };
     Session sessions[AP_MAVLINK_FTP_MAX_SESSIONS];
 

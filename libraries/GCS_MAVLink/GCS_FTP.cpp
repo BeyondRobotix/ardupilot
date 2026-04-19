@@ -101,7 +101,19 @@ void GCS_FTP::handle_file_transfer_protocol(const mavlink_message_t &msg, mavlin
 
 bool GCS_FTP::send_reply(const Transaction &reply)
 {
-    if (!GCS_MAVLINK::last_txbuf_is_greater(33)) { // It helps avoid GCS timeout if this is less than the threshold where we slow down normal streams (<=49)
+    // The txbuf gate exists to protect telemetry radios that cannot
+    // backpressure. Links that have real flow control (USB CDC, UARTs with
+    // RTS/CTS) already push back via HAVE_PAYLOAD_SPACE below, and a GCS
+    // that synthesises RADIO_STATUS with a low txbuf (e.g. MAVProxy) can
+    // otherwise stall FTP for multi-second periods on USB.
+    bool need_txbuf_check = true;
+    if (valid_channel(reply.chan)) {
+        auto *port = mavlink_comm_port[reply.chan];
+        if (port != nullptr && port->get_flow_control() == AP_HAL::UARTDriver::FLOW_CONTROL_ENABLE) {
+            need_txbuf_check = false;
+        }
+    }
+    if (need_txbuf_check && !GCS_MAVLINK::last_txbuf_is_greater(33)) { // It helps avoid GCS timeout if this is less than the threshold where we slow down normal streams (<=49)
         return false;
     }
     WITH_SEMAPHORE(comm_chan_lock(reply.chan));
@@ -298,8 +310,57 @@ int GCS_FTP::Session::close(void)
         fd = -1;
     }
     last_send_ms = 0;
+    read_buf_valid_bytes = 0;
 
     return result;
+}
+
+// Serve a read from the per-session read-ahead buffer, refilling from the
+// underlying file when the request falls outside the cached range. This
+// converts the ~239 B per-packet FatFs calls made by BurstReadFile into
+// one larger read per AP_MAVLINK_FTP_READAHEAD_SIZE window.
+ssize_t GCS_FTP::Session::read_at(uint32_t offset, uint8_t *dest, uint16_t size)
+{
+    // fast path: requested range fully contained in the cached window
+    if (read_buf_valid_bytes > 0 &&
+        offset >= read_buf_file_offset &&
+        offset < read_buf_file_offset + read_buf_valid_bytes) {
+        const uint32_t skip = offset - read_buf_file_offset;
+        const uint16_t avail = MIN((uint16_t)(read_buf_valid_bytes - skip), size);
+        memcpy(dest, read_buf + skip, avail);
+        return avail;
+    }
+
+    // miss: seek and refill the buffer from this offset.
+    // Read in size-byte chunks so filesystems that lock in a read_size
+    // (e.g. AP_Filesystem_Param, which uses it for parameter alignment
+    // padding) see a consistent block size that matches the FTP packet
+    // payload size and preserve parameter alignment across packets.
+    if (AP::FS().lseek(fd, offset, SEEK_SET) == -1) {
+        read_buf_valid_bytes = 0;
+        return -1;
+    }
+    uint16_t total = 0;
+    while (total + size <= sizeof(read_buf)) {
+        const ssize_t n = AP::FS().read(fd, read_buf + total, size);
+        if (n <= 0) {
+            break;
+        }
+        total += (uint16_t)n;
+        if ((uint16_t)n < size) {
+            break;
+        }
+    }
+    if (total == 0) {
+        read_buf_valid_bytes = 0;
+        return 0;
+    }
+    read_buf_file_offset = offset;
+    read_buf_valid_bytes = total;
+
+    const uint16_t avail = MIN(total, size);
+    memcpy(dest, read_buf, avail);
+    return avail;
 }
 
 /*
@@ -374,6 +435,7 @@ bool GCS_FTP::Session::handle_request(Transaction &request, Transaction &reply)
             break;
         }
         mode = FTP_FILE_MODE::Read;
+        read_buf_valid_bytes = 0;
 
         reply.opcode = FTP_OP::Ack;
         reply.size = sizeof(uint32_t);
@@ -402,14 +464,8 @@ bool GCS_FTP::Session::handle_request(Transaction &request, Transaction &reply)
             break;
         }
 
-        // seek to requested offset
-        if (AP::FS().lseek(fd, request.offset, SEEK_SET) == -1) {
-            GCS_FTP::error(reply, FTP_ERROR::FailErrno);
-            break;
-        }
-
-        // fill the buffer
-        const ssize_t read_bytes = AP::FS().read(fd, reply.data, MIN(sizeof(reply.data),request.size));
+        // fill the buffer via the session read-ahead cache
+        const ssize_t read_bytes = read_at(request.offset, reply.data, MIN(sizeof(reply.data), (size_t)request.size));
         if (read_bytes == -1) {
             GCS_FTP::error(reply, FTP_ERROR::FailErrno);
             break;
@@ -566,12 +622,6 @@ bool GCS_FTP::Session::handle_request(Transaction &request, Transaction &reply)
             break;
         }
 
-        // seek to requested offset
-        if (AP::FS().lseek(fd, request.offset, SEEK_SET) == -1) {
-            GCS_FTP::error(reply, FTP_ERROR::FailErrno);
-            break;
-        }
-
         /*
           calculate a burst delay so that FTP burst
           transfer doesn't use more than 1/3 of
@@ -592,10 +642,12 @@ bool GCS_FTP::Session::handle_request(Transaction &request, Transaction &reply)
 
         // this transfer size is enough for a full parameter file with max parameters
         const uint32_t transfer_size = 2000;
+        reply.offset = request.offset;
         for (uint32_t i = 0; (i < transfer_size); i++) {
-            // fill the buffer
-            const ssize_t read_bytes = AP::FS().read(fd, reply.data, MIN(sizeof(reply.data), max_read));
+            // fill the buffer via the session read-ahead cache
+            const ssize_t read_bytes = read_at(reply.offset, reply.data, MIN(sizeof(reply.data), (size_t)max_read));
             if (read_bytes == -1) {
+                reply.burst_complete = true;
                 GCS_FTP::error(reply, FTP_ERROR::FailErrno);
                 break;
             }
@@ -606,21 +658,20 @@ bool GCS_FTP::Session::handle_request(Transaction &request, Transaction &reply)
             }
 
             if (read_bytes == 0) {
+                reply.burst_complete = true;
                 GCS_FTP::error(reply, FTP_ERROR::EndOfFile);
                 break;
             }
 
             reply.opcode = FTP_OP::Ack;
-            reply.offset = request.offset + i * max_read;
-            reply.burst_complete = ((read_bytes < max_read) || (i == (transfer_size - 1)));
+            // Signal to the client that they need to request another burst read to get more data
+            reply.burst_complete = (i == (transfer_size - 1));
             reply.size = (uint8_t)read_bytes;
 
             push_reply(reply);
 
-            if (read_bytes < max_read) {
-                // ensure the NACK which we send next is at the right offset
-                reply.offset += read_bytes;
-            }
+            // update the offset for the next read
+            reply.offset += read_bytes;
 
             // prep the reply to be used again
             reply.seq_number++;

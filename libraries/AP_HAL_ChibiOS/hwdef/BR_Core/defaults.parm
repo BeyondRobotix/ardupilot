@@ -1,0 +1,42 @@
+# Default parameters for Beyond Robotix BR-Core
+
+# ==============================
+# CAN Bus
+# ==============================
+CAN_P1_DRIVER 1
+CAN_P2_DRIVER 2
+CAN_D1_PROTOCOL 1
+CAN_D2_PROTOCOL 1
+
+# ==============================
+# Networking
+# ==============================
+NET_ENABLE 1
+NET_DHCP 0
+
+# Static IP for the flight controller (change to suit your network)
+NET_IPADDR0 192
+NET_IPADDR1 168
+NET_IPADDR2 144
+NET_IPADDR3 14
+
+NET_GWADDR0 192
+NET_GWADDR1 168
+NET_GWADDR2 144
+NET_GWADDR3 1
+
+NET_NETMASK 24
+
+# UDP MAVLink2 stream to GCS (change IP to your GCS address)
+NET_P1_TYPE 1
+NET_P1_PROTOCOL 2
+NET_P1_IP0 192
+NET_P1_IP1 168
+NET_P1_IP2 144
+NET_P1_IP3 255
+NET_P1_PORT 14550
+
+# ==============================
+# Battery Monitoring
+# ==============================
+BATT_MONITOR 8
