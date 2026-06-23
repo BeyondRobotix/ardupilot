@@ -153,6 +153,11 @@ define HAL_PROBE_EXTERNAL_I2C_COMPASSES
 define HAL_I2C_INTERNAL_MASK 0
 define HAL_COMPASS_AUTO_ROT_DEFAULT 2
 define HAL_DEFAULT_INS_FAST_SAMPLE 3
+
+## ADDED this compass specifically
+define AP_COMPASS_QMC5883P_ENABLED 1
+
+
 # Motor order implies Betaflight/X for standard ESCs
 define HAL_FRAME_TYPE_DEFAULT 12
 
