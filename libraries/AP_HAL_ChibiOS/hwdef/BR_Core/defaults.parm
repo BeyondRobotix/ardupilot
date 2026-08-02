@@ -1,6 +1,23 @@
 # Default parameters for Beyond Robotix BR-Core
 
 # ==============================
+# Serial ports
+# ==============================
+# SERIAL0 (OTG1/USB) is MAVLink2 by default - leave as-is
+# SERIAL1 (USART1) is the RC input port
+SERIAL1_PROTOCOL 23
+# SERIAL2 (USART2) is Telem1, MAVLink2 by default - leave as-is
+# SERIAL3-6 (USART3, UART4, UART5, USART6) are unused
+SERIAL3_PROTOCOL -1
+SERIAL4_PROTOCOL -1
+SERIAL5_PROTOCOL -1
+SERIAL6_PROTOCOL -1
+# SERIAL7 (UART7) is the GPS port
+SERIAL7_PROTOCOL 5
+# UART8 is not in SERIAL_ORDER - it's dedicated to the HAL debug console (STDOUT_SERIAL)
+# SERIAL8 (OTG2) defaults to SLCAN via HAL_OTG2_PROTOCOL - leave as-is
+
+# ==============================
 # CAN Bus
 # ==============================
 CAN_P1_DRIVER 1
@@ -27,14 +44,18 @@ NET_GWADDR3 1
 
 NET_NETMASK 24
 
-# UDP MAVLink2 stream to GCS (change IP to your GCS address)
-NET_P1_TYPE 1
+# MAC address
+NET_MACADDR0 194
+NET_MACADDR1 175
+NET_MACADDR2 81
+NET_MACADDR3 144
+NET_MACADDR4 51
+NET_MACADDR5 252
+
+# TCP server for MAVLink2 GCS connection on port 5760
+NET_P1_TYPE 4
 NET_P1_PROTOCOL 2
-NET_P1_IP0 192
-NET_P1_IP1 168
-NET_P1_IP2 144
-NET_P1_IP3 255
-NET_P1_PORT 14550
+NET_P1_PORT 5760
 
 # ==============================
 # Battery Monitoring
