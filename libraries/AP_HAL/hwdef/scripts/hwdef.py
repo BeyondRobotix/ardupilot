@@ -452,6 +452,18 @@ class HWDef:
             elif driver == 'AK8963' and probe != 'probe':
                 expected_device_count = 0
 
+            # this maps from a driver name in the hwdef to an
+            # ArduPilot driver name.  This is useful if devices are
+            # believed to be identical but we want to reserve the
+            # option of differentiating later.  If you add something
+            # here, consider adding something to build_options.py
+            device_type_to_driver_mapping = {
+                "LIS2MDL": "IIS2MDC",
+            }
+
+            # apply mapping from hwdef driver to ArduPilot driver:
+            driver = device_type_to_driver_mapping.get(driver, driver)
+
             devlist = []
             for i in range(0, expected_device_count):
                 d = dev[0]
@@ -533,8 +545,11 @@ class HWDef:
             args.append(str(compass.rotation))
 
             f.write(
-                '#define HAL_MAG_PROBE%u %s {add_backend(DRIVER_%s, AP_Compass_%s::%s(%s));RETURN_IF_NO_SPACE;}\n'
-                % (n, wrapper, driver, driver, probe, ','.join(args)))
+                '''#define HAL_MAG_PROBE%u %s \\
+                    if (_driver_enabled(DRIVER_%s)) { \\
+                        {add_backend(DRIVER_%s, AP_Compass_%s::%s(%s));RETURN_IF_NO_SPACE;} \\
+                    }\n'''
+                % (n, wrapper, driver, driver, driver, probe, ','.join(args)))
             f.write(f"#undef AP_COMPASS_{driver}_ENABLED\n#define AP_COMPASS_{driver}_ENABLED 1\n")
         if len(devlist) > 0:
             f.write('#define HAL_MAG_PROBE_LIST %s\n\n' % ';'.join(devlist))

@@ -736,16 +736,14 @@ void GCS_MAVLINK_Sub::handle_message(const mavlink_message_t &msg)
         break;
     }
 
-    // This adds support for leak detectors in a separate enclosure
-    // connected to a mavlink enabled subsystem
+    // Remote leak sensor support (e.g. in a separate enclosure), via MAVLink status messages.
     case MAVLINK_MSG_ID_SYS_STATUS: {
-        uint32_t MAV_SENSOR_WATER = 0x20000000;
         mavlink_sys_status_t packet;
         mavlink_msg_sys_status_decode(&msg, &packet);
         if ((msg.sysid == gcs().sysid_this_mav()) &&
-            (packet.onboard_control_sensors_enabled & MAV_SENSOR_WATER) &&
-            !(packet.onboard_control_sensors_health & MAV_SENSOR_WATER)
-        ) {
+            (packet.onboard_control_sensors_present & MAV_SYS_STATUS_EXTENSION_USED) &&
+            (packet.onboard_control_sensors_enabled_extended & MAV_SYS_STATUS_SENSOR_LEAK) &&
+            !(packet.onboard_control_sensors_health_extended & MAV_SYS_STATUS_SENSOR_LEAK)) {
             sub.leak_detector.set_detect();
         }
         break;
@@ -816,11 +814,10 @@ uint8_t GCS_MAVLINK_Sub::high_latency_tgt_heading() const
     return 0;      
 }
     
-uint16_t GCS_MAVLINK_Sub::high_latency_tgt_dist() const
+uint16_t GCS_MAVLINK_Sub::high_latency_tgt_dist_dam() const
 {
-    // return units are dm
     if (sub.control_mode == Mode::Number::AUTO || sub.control_mode == Mode::Number::GUIDED) {
-        return MIN(sub.wp_nav.get_wp_distance_to_destination_cm() * 0.001, UINT16_MAX);
+        return MIN(static_cast<uint16_t>(sub.wp_nav.get_wp_distance_to_destination_cm() * 1e-3), UINT16_MAX);
     }
     return 0;
 }

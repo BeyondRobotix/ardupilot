@@ -39,6 +39,12 @@ class AutoTestHelicopter(AutoTestCopter):
     def is_heli(self):
         return True
 
+    def subgroupvarptr_activation_params(self):
+        ret = super(AutoTestHelicopter, self).subgroupvarptr_activation_params()
+        # AC_CustomControl is disabled on heli (AC_CUSTOMCONTROL_MULTI_ENABLED is false)
+        ret.pop("CC_TYPE", None)
+        return ret
+
     def rc_defaults(self):
         ret = super(AutoTestHelicopter, self).rc_defaults()
         ret[8] = 1000
@@ -218,6 +224,62 @@ class AutoTestHelicopter(AutoTestCopter):
         )
         self.set_parameter("H_RSC_MODE", 4)
         self.takeoff(10)
+        self.do_RTL()
+
+    def GovernorNotEngagedManualThrottle(self):
+        '''check runup complete and land-complete clear in manual throttle modes when governor never engages'''
+        self.customise_SITL_commandline(
+            [],
+            defaults_filepath=self.model_defaults_filepath('heli-gas'),
+            model="heli-gas",
+            wipe=True,
+        )
+        # AutoThrottle RSC mode with the rotor speed sensor removed;
+        # without RPM feedback the governor can never engage:
+        self.set_parameters({
+            "H_RSC_MODE": 4,
+            "RPM1_TYPE": 0,
+        })
+        self.reboot_sitl()
+
+        self.context_collect('STATUSTEXT')
+        self.context_set_message_rate_hz(id=mavutil.mavlink.MAVLINK_MSG_ID_EXTENDED_SYS_STATE, rate_hz=1)
+
+        self.change_mode('ALT_HOLD')
+        self.wait_ready_to_arm()
+        self.arm_vehicle()
+        self.progress("Raising rotor speed")
+        self.set_rc(8, 2000)
+
+        # wait beyond the rotor ramp and runup timers:
+        runup_time = (self.get_parameter("H_RSC_RAMP_TIME") +
+                      self.get_parameter("H_RSC_RUNUP_TIME"))
+        self.delay_sim_time(runup_time + 10, reason="rotor ramp and runup timers to expire")
+
+        # in a non-manual-throttle mode runup must not be declared
+        # complete until the governor engages:
+        if self.statustext_in_collections("Runup Complete") is not None:
+            raise NotAchievedException(
+                "Runup completed without governor engaged in non-manual throttle mode")
+
+        self.progress("Switching to a manual throttle mode")
+        self.change_mode('STABILIZE')
+        self.wait_statustext("Governor Failed to Engage when Runup Completed", check_context=True, timeout=30)
+
+        self.progress("Take off and check land-complete is cleared")
+        self.assert_extended_sys_state(
+            vtol_state=mavutil.mavlink.MAV_VTOL_STATE_MC,
+            landed_state=mavutil.mavlink.MAV_LANDED_STATE_ON_GROUND,
+        )
+        self.set_rc(3, 1700)
+        self.wait_altitude(5, 30, relative=True, timeout=60)
+        self.hover()
+        self.wait_extended_sys_state(
+            vtol_state=mavutil.mavlink.MAV_VTOL_STATE_MC,
+            landed_state=mavutil.mavlink.MAV_LANDED_STATE_IN_AIR,
+            timeout=10,
+        )
+
         self.do_RTL()
 
     def hover(self):
@@ -805,6 +867,7 @@ class AutoTestHelicopter(AutoTestCopter):
 
         self.wait_waypoint(1, num_wp-1)
         self.wait_disarmed()
+        self.set_rc(3, 1000)
         self.set_rc(8, 1000)    # Lower rotor speed
 
     # FIXME move this & plane's version to common
@@ -1183,6 +1246,53 @@ class AutoTestHelicopter(AutoTestCopter):
         self.progress("Killing rotor speed")
         self.set_rc(8, 1000)
 
+    def assert_not_stick_armed(self, timeout=10):
+        '''raise if the vehicle stick-arms within timeout seconds'''
+        arming_channel = self.get_stick_arming_channel()
+        self.set_output_to_max(arming_channel)
+        tstart = self.get_sim_time()
+        try:
+            while self.get_sim_time_cached() - tstart < timeout:
+                self.wait_heartbeat()
+                if self.armed():
+                    raise NotAchievedException("Stick-armed when it should not have")
+        finally:
+            self.set_output_to_trim(arming_channel)
+
+    def StickArmingRequiresZeroThrottle(self):
+        '''check that stick (rudder) arming requires the collective at zero'''
+
+        '''
+        Reproduces https://github.com/ArduPilot/ardupilot/issues/33386 :
+        a heli could be stick-armed with the collective/throttle stick
+        raised off the bottom stop, a change in behaviour from 4.6 and
+        prior.  Stick arming must require zero throttle.
+        '''
+
+        # test in stabilize mode with rotor interlock disabled
+        self.change_mode('STABILIZE')
+        self.set_rc(8, 1000)
+
+        # check arming is possible with collective at zero
+        self.start_subtest("Stick arming succeeds with collective at zero")
+        self.set_parameter("RC_OPTIONS", 32) # enable Arming check throttle for 0 input
+        self.zero_throttle()
+        self.wait_ready_to_arm()
+        self.arm_motors_with_rc_input()
+        self.disarm_vehicle()
+
+        # check arming fails with collective raised
+        self.start_subtest("Stick arming is refused with collective raised")
+        self.set_rc(3, 1300)
+        self.assert_not_stick_armed()
+
+        # check arming succeeds with RC_OPTIONS arming check disabled
+        self.start_subtest("Stick arming succeeds with collective raised")
+        self.set_parameter("RC_OPTIONS", 0)
+        self.set_rc(3, 1300)
+        self.arm_motors_with_rc_input()
+        self.disarm_vehicle()
+
     def tests(self):
         '''return list of all tests'''
         ret = vehicle_test_suite.TestSuite.tests(self)
@@ -1196,6 +1306,7 @@ class AutoTestHelicopter(AutoTestCopter):
             self.Autorotation,
             self.ManAutorotation,
             self.governortest,
+            self.GovernorNotEngagedManualThrottle,
             self.FlyEachFrame,
             self.AirspeedDrivers,
             self.TurbineStart,
@@ -1204,6 +1315,7 @@ class AutoTestHelicopter(AutoTestCopter):
             self.PIDNotches,
             self.AutoTune,
             self.MountFailsafeAction,
+            self.StickArmingRequiresZeroThrottle,
         ])
         return ret
 
