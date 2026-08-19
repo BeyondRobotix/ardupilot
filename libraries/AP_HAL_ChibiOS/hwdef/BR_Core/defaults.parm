@@ -34,7 +34,7 @@ NET_DHCP 0
 # Static IP for the flight controller (change to suit your network)
 NET_IPADDR0 192
 NET_IPADDR1 168
-NET_IPADDR2 144
+NET_IPADDR2 8
 NET_IPADDR3 14
 
 NET_GWADDR0 192
