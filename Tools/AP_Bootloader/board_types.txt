@@ -646,6 +646,9 @@ AP_HW_Accton_Godwit_GFH7             7122
 AP_HW_CoreWingF405WingV2             7130
 AP_HW_CoreWingF405WMiniV2            7131
 
+# Beyond Robotix: provisional, not yet allocated upstream
+AP_HW_BR_CANNodePlus                 7140
+
 # please fill gaps in the above ranges rather than adding past ID #7199
 
 
