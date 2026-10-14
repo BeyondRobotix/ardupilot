@@ -1,0 +1,2 @@
+# debug UART (SERIAL3, UART4) has TX and RX swapped on the board
+UART3_OPTIONS 8

@@ -1,0 +1,149 @@
+# hw definition file for processing by chibios_hwdef.py
+# for the Beyond Robotix CAN Node Plus (STM32H723VGH6) running AP_Periph
+# https://beyond-robotix.gitbook.io/docs/can-ecosystem/can-node-plus
+
+# The board keeps the Beyond Robotix bootloader (BR_bootloader) in the
+# first 128k flash sector. It jumps to the app at 0x08020000 and shares
+# struct app_bootloader_comms with AP_Periph at the start of DTCM
+# (0x20000000), which is where AP_Periph puts it (HAL_RAM0_START), so
+# DroneCAN firmware update works without an ArduPilot bootloader.
+
+# MCU class and specific type
+MCU STM32H7xx STM32H723xx
+
+# board ID. See Tools/AP_Bootloader/board_types.txt
+APJ_BOARD_ID AP_HW_BR_CANNodePlus
+
+# setup build for a peripheral firmware
+env AP_PERIPH 1
+
+# crystal frequency
+OSCILLATOR_HZ 8000000
+
+FLASH_SIZE_KB 1024
+
+# BR_bootloader occupies sector 0, app starts at sector 1 (0x08020000)
+FLASH_RESERVE_START_KB 128
+
+# never embed or flash an ArduPilot bootloader over BR_bootloader
+define AP_BOOTLOADER_FLASHING_ENABLED 0
+
+# store parameters in the last two 128k sectors (6 and 7)
+STORAGE_FLASH_PAGE 6
+define HAL_STORAGE_SIZE 32768
+
+# pins for SWD debugging
+PA13 JTMS-SWDIO SWD
+PA14 JTCK-SWCLK SWD
+
+# USB-C
+PA11 OTG_HS_DM OTG1
+PA12 OTG_HS_DP OTG1
+
+# CAN1 on connector C1, CAN2 on connector C2
+PD0 CAN1_RX CAN1
+PD1 CAN1_TX CAN1
+PB5 CAN2_RX CAN2
+PB6 CAN2_TX CAN2
+
+# order of UARTs
+#            SERIAL0 SERIAL1 SERIAL2 SERIAL3
+SERIAL_ORDER OTG1    USART2  USART3  UART4
+
+# Serial 1 (S1), with flow control
+PD5 USART2_TX USART2
+PD6 USART2_RX USART2
+PD4 USART2_RTS USART2
+PD3 USART2_CTS USART2
+
+# Serial 2 + I2C (S2+I2C), autopilot GPS pinout
+PC10 USART3_TX USART3
+PC11 USART3_RX USART3
+
+# debug UART on the 14 pin debug header (STLINK-V3 VCP). The pin mux
+# only has UART4_TX on PB9 and UART4_RX on PB8, but the board routes
+# the node's TX on PB8, so the port needs TX/RX swapped (UART3_OPTIONS 8
+# in defaults.parm)
+PB9 UART4_TX UART4
+PB8 UART4_RX UART4
+
+# I2C on the S2+I2C connector, pull-ups fitted on the board
+I2C_ORDER I2C2
+PB10 I2C2_SCL I2C2
+PB11 I2C2_SDA I2C2
+define HAL_I2C_INTERNAL_MASK 0
+
+# SPI connector (CS1, CS2, SYNC, DRDY1, DRDY2, nRESET)
+PE2 SPI4_SCK SPI4
+PE5 SPI4_MISO SPI4
+PE6 SPI4_MOSI SPI4
+PD15 EXT_CS1 CS
+PD14 EXT_CS2 CS
+PD13 EXT_SYNC INPUT
+PD12 EXT_DRDY1 INPUT
+PD11 EXT_DRDY2 INPUT
+PD10 EXT_NRESET OUTPUT HIGH
+
+# PWM connector, numbered by connector pin
+PA3  TIM2_CH4 TIM2 PWM(1) GPIO(50)
+PA2  TIM2_CH3 TIM2 PWM(2) GPIO(51)
+PA1  TIM2_CH2 TIM2 PWM(3) GPIO(52)
+PE13 TIM1_CH3 TIM1 PWM(4) GPIO(53)
+PA9  TIM1_CH2 TIM1 PWM(5) GPIO(54)
+PA8  TIM1_CH1 TIM1 PWM(6) GPIO(55)
+PC7  TIM3_CH2 TIM3 PWM(7) GPIO(56)
+PC6  TIM3_CH1 TIM3 PWM(8) GPIO(57)
+
+# green LED
+PB0 LED OUTPUT LOW GPIO(90)
+define HAL_LED_ON 1
+
+# 5V peripheral rail load switch enable, pulled up on the board.
+# Drive low to cut power to S1, S2+I2C, SPI and PWM
+PA5 PERIPH_5V_EN OUTPUT HIGH GPIO(80)
+
+# PB1 has the 5V bus through a 10k/10k divider. The common H723 clock
+# tree runs the ADC kernel clock (PLL3R) at 96MHz, above the 50MHz limit,
+# so the ADC stays off until that is fixed in stm32h7_type2_mcuconf.h
+define HAL_USE_ADC FALSE
+
+#################################
+# AP_Periph - configurations specific to this App
+#################################
+
+define CAN_APP_NODE_NAME "org.beyondrobotix.CANNodePlus"
+
+# GPS on S2+I2C
+define AP_PERIPH_GPS_ENABLED 1
+define HAL_PERIPH_GPS_PORT_DEFAULT 2
+define GPS_MAX_RECEIVERS 1
+define GPS_MAX_INSTANCES 1
+define AP_GPS_UBLOX_CFGV2_ENABLED 1
+
+# compass on the S2+I2C I2C bus (GPS/compass combo modules)
+define AP_PERIPH_MAG_ENABLED 1
+define AP_COMPASS_PROBING_ENABLED 1
+define HAL_COMPASS_MAX_SENSORS 1
+
+define AP_PERIPH_BARO_ENABLED 1
+
+define AP_PERIPH_AIRSPEED_ENABLED 1
+
+# rangefinder, disabled by default
+define AP_PERIPH_RANGEFINDER_ENABLED 1
+define AP_PERIPH_RANGEFINDER_PORT_DEFAULT -1
+
+define AP_PERIPH_RC_OUT_ENABLED 1
+define AP_PERIPH_RELAY_ENABLED 1
+
+# per-port UART options (TX/RX swap, inversion, flow control)
+define AP_PERIPH_SERIAL_OPTIONS_ENABLED 1
+
+# allow the serial ports to be tunnelled over DroneCAN
+define AP_UART_MONITOR_ENABLED 1
+
+# embedded parameter defaults (debug UART swap)
+define AP_PARAM_MAX_EMBEDDED_PARAM 512
+
+define HAL_SCHEDULER_LOOP_DELAY_ENABLED 1
+define HAL_MONITOR_THREAD_ENABLED 1
