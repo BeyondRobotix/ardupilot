@@ -173,7 +173,9 @@
 
 #define STM32_PLL3_DIVN_VALUE               192
 #define STM32_PLL3_DIVQ_VALUE               2
-#define STM32_PLL3_DIVR_VALUE               4
+// 32MHz for I2C and ADC. The H7 I2C TIMINGR values assume a 32MHz
+// kernel clock, and the ADC kernel clock must not exceed 50MHz
+#define STM32_PLL3_DIVR_VALUE               12
 #endif // clock selection
 
 /*
@@ -248,7 +250,12 @@
 #define STM32_LPTIM1SEL                     STM32_LPTIM1SEL_PCLK1
 #define STM32_CECSEL                        STM32_CECSEL_DISABLE
 #define STM32_USBSEL                        STM32_USBSEL_HSI48_CK
-#define STM32_I2C123SEL                     STM32_I2C123SEL_PLL3_R_CK
+// I2C1/2/3/5 from PLL3R (32MHz) to match the H7 I2C TIMINGR values. The
+// ChibiOS type2 clock tree only uses the I2C1235SEL name for PCLK1 and
+// tests the old I2C123SEL names for the other sources, so alias them
+#define STM32_I2C1235SEL                    STM32_I2C1235SEL_PLL3_R_CK
+#define STM32_I2C123SEL                     STM32_I2C1235SEL
+#define STM32_I2C123SEL_PLL3_R_CK           STM32_I2C1235SEL_PLL3_R_CK
 #define STM32_RNGSEL                        STM32_RNGSEL_HSI48_CK
 #define STM32_USART16SEL                    STM32_USART16SEL_PCLK2
 #define STM32_USART234578SEL                STM32_USART234578SEL_PCLK1

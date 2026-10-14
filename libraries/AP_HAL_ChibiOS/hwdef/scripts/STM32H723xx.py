@@ -54,7 +54,9 @@ mcu = {
 
     'DEFINES' : {
         'HAL_HAVE_HARDWARE_DOUBLE' : '1',
-        'HAL_WITH_MCU_MONITORING' : '1',
+        # ADC3 on the H723 is a 12 bit ADC the ChibiOS ADCv4 driver does not
+        # support, so the MCU temperature and voltage channels are not available
+        'HAL_WITH_MCU_MONITORING' : '0',
         'STM32H7' : '1',
     }
 }
