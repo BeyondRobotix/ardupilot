@@ -102,10 +102,8 @@ define HAL_LED_ON 1
 # Drive low to cut power to S1, S2+I2C, SPI and PWM
 PA5 PERIPH_5V_EN OUTPUT HIGH GPIO(80)
 
-# PB1 has the 5V bus through a 10k/10k divider. The common H723 clock
-# tree runs the ADC kernel clock (PLL3R) at 96MHz, above the 50MHz limit,
-# so the ADC stays off until that is fixed in stm32h7_type2_mcuconf.h
-define HAL_USE_ADC FALSE
+# 5V bus through a 10k/10k divider
+PB1 VDD_5V_SENS ADC1 SCALE(2)
 
 #################################
 # AP_Periph - configurations specific to this App

@@ -49,10 +49,11 @@ openocd -f interface/stlink.cfg -f target/stm32h7x.cfg \
 | SPI | SPI4 | SCK PE2, MISO PE5, MOSI PE6, CS PD15/PD14 | |
 
 PA5 enables the current limited 5V peripheral rail (GPIO 80, on by default).
-The green LED is on PB0.
+The 5V bus is measured on PB1 through a 10k/10k divider. The green LED is
+on PB0.
 
 ## Known limitations
 
-- The 5V bus monitor on PB1 is not used: the common H723 clock tree runs the
-  ADC kernel clock at 96MHz, over the 50MHz limit, so the ADC is disabled.
+- No MCU temperature or voltage monitoring: on the H723 those are on ADC3,
+  a different ADC type that ChibiOS does not support.
 - `APJ_BOARD_ID` 7140 is a provisional local ID, not allocated upstream.
