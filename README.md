@@ -1,0 +1,75 @@
+# BR-Ardupilot
+
+Beyond Robotix fork of [ArduPilot](https://github.com/ArduPilot/ardupilot).
+
+This default branch contains only this README. The firmware source lives on the
+branches listed below. Pick the branch for your board and clone it directly:
+
+```sh
+git clone --recurse-submodules -b <branch> https://github.com/BeyondRobotix/BR-Ardupilot.git
+```
+
+Build instructions are the same as upstream ArduPilot, see
+[BUILD.md](https://github.com/ArduPilot/ardupilot/blob/master/BUILD.md). For example:
+
+```sh
+./waf configure --board BR_Core
+./waf plane
+```
+
+## Branches
+
+### Upstream
+
+| Branch | Description |
+|---|---|
+| `master` | Mirror of ArduPilot `master`. Contains no Beyond Robotix changes; base for upstream contributions. |
+
+### Flight controllers
+
+| Branch | Board (hwdef) | Description |
+|---|---|---|
+| `BR_CORE_HW_DEF_2-4.7.0` | `BR_Core` | BR Core on ArduPilot 4.7.0 (Plane-4.7.0 tag). |
+| `BR_CORE_HW_DEF_2` | `BR_Core` | BR Core hardware revision 2 development, based on 4.7.0 beta. |
+| `BRCoreHWDEF` | `BR_Core` | Original BR Core hwdef. |
+| `BR-H743` | `BR-H743`, `-V2`, `-V3`, `-V4` | BR H743 flight controller revisions. |
+
+### CAN / DroneCAN peripherals (AP_Periph)
+
+| Branch | Board (hwdef) | Description |
+|---|---|---|
+| `CAN-Node-Plus-Periph` | `BR_CANNodePlus` | CAN Node Plus (STM32H723) AP_Periph firmware. |
+| `Micro-Node-hwdef-2` | `BeyondRobotixM`, `BeyondRobotixM-Periph` | Micro Node AP_Periph firmware. |
+| `Micro-Node-hwdef` | `BeyondRobotixM`, `BeyondRobotixM-Periph` | Earlier Micro Node hwdef. Superseded by `Micro-Node-hwdef-2`. |
+| `GNSS-MAG-Combo` | `BR_GNSS_MAG`, `BR_GNSS_DAN_F10N`, `BR_Mag_RM3100` | Combined GNSS + magnetometer node. |
+| `BR_GNSS_DAN_F10N` | `BR_GNSS_DAN_F10N`, `BR_Mag_RM3100` | u-blox DAN-F10N GNSS node. |
+| `BR_MAG_RM3100` | `BR_Mag_RM3100` | RM3100 magnetometer node. |
+| `ArduinoDroneCAN-Bootloader` | `BeyondRobotixM` | Bootloader for the Arduino DroneCAN (Micro Node) board. |
+
+### Features
+
+| Branch | Description |
+|---|---|
+| `dronecan-indicated-airspeed` | DroneCAN `IndicatedAirspeed` / `TrueAirspeed` support in AP_Airspeed, with autotest. Intended for upstream. |
+| `AUAV-Add-All` | Additional AUAV airspeed sensor support (`MatekL431-AUAV`). |
+
+### Personal / experimental
+
+| Branch | Description |
+|---|---|
+| `dev/harvey` | Development branch based on 4.6.3. |
+| `anon` | Experimental Micro Node work. |
+| `copilot/*` | Automated assistant working branches. |
+
+## Contributing upstream
+
+Changes that are useful to the wider ArduPilot community should be submitted to
+[ArduPilot/ardupilot](https://github.com/ArduPilot/ardupilot) from a branch based
+on `master`, following the
+[ArduPilot contributing guidelines](https://github.com/ArduPilot/ardupilot/blob/master/.github/CONTRIBUTING.md).
+
+## License
+
+ArduPilot is licensed under the
+[GNU General Public License v3](https://github.com/ArduPilot/ardupilot/blob/master/COPYING.txt).
+All branches in this repository are distributed under the same license.
