@@ -30,9 +30,6 @@ Build instructions are the same as upstream ArduPilot, see
 | Branch | Board (hwdef) | Description |
 |---|---|---|
 | `BR_CORE_HW_DEF_2-4.7.0` | `BR_Core` | BR Core on ArduPilot 4.7.0 (Plane-4.7.0 tag). |
-| `BR_CORE_HW_DEF_2` | `BR_Core` | BR Core hardware revision 2 development, based on 4.7.0 beta. |
-| `BRCoreHWDEF` | `BR_Core` | Original BR Core hwdef. |
-| `BR-H743` | `BR-H743`, `-V2`, `-V3`, `-V4` | BR H743 flight controller revisions. |
 
 ### CAN / DroneCAN peripherals (AP_Periph)
 
@@ -40,7 +37,6 @@ Build instructions are the same as upstream ArduPilot, see
 |---|---|---|
 | `CAN-Node-Plus-Periph` | `BR_CANNodePlus` | CAN Node Plus (STM32H723) AP_Periph firmware. |
 | `Micro-Node-hwdef-2` | `BeyondRobotixM`, `BeyondRobotixM-Periph` | Micro Node AP_Periph firmware. |
-| `Micro-Node-hwdef` | `BeyondRobotixM`, `BeyondRobotixM-Periph` | Earlier Micro Node hwdef. Superseded by `Micro-Node-hwdef-2`. |
 | `GNSS-MAG-Combo` | `BR_GNSS_MAG`, `BR_GNSS_DAN_F10N`, `BR_Mag_RM3100` | Combined GNSS + magnetometer node. |
 | `BR_GNSS_DAN_F10N` | `BR_GNSS_DAN_F10N`, `BR_Mag_RM3100` | u-blox DAN-F10N GNSS node. |
 | `BR_MAG_RM3100` | `BR_Mag_RM3100` | RM3100 magnetometer node. |
