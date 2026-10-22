@@ -1,11 +1,17 @@
 # hw definition file for processing by chibios_pins.py
 # for Beyond Robotix H743
 
+# default unlisted pins to output low to avoid ESD issues. This must
+# come before the MCU line, or chibios_hwdef.py ignores it. Every pin
+# that is connected on the board is listed below, except PH0/PH1
+# (HSE crystal, taken over by the RCC when HSE starts).
+DEFAULTGPIO OUTPUT LOW PULLDOWN
+
 # MCU class and specific type
 MCU STM32H7xx STM32H743xx
 
 # board ID. See Tools/AP_Bootloader/board_types.txt
-APJ_BOARD_ID AP_HW_MATEKH743
+APJ_BOARD_ID AP_HW_BR_CORE
 
 # crystal frequency, setup to use external oscillator
 OSCILLATOR_HZ 24000000
@@ -15,9 +21,6 @@ env OPTIMIZE -Os
 
 # bootloader takes first sector
 FLASH_RESERVE_START_KB 128
-
-# default to all pins low to avoid ESD issues
-DEFAULTGPIO OUTPUT LOW PULLDOWN
 
 # ChibiOS system timer
 STM32_ST_USE_TIMER 12
@@ -72,6 +75,13 @@ PH8 I2C3_SDA I2C3
 PB8 I2C4_SCL I2C4
 PB9 I2C4_SDA I2C4
 
+# UART RX pins (except UART7, which is on TT pins) are FT and may see 5 V
+# SBUS. DS12110 Table 23 note 4 requires the internal pull-up/down to be
+# off above VDD + 0.3 V, so the RX pins are FLOATING here.
+# NOTE: on H7, UARTDriver::set_options() re-applies a pull-up (or a
+# pull-down with RXINV) on RX when SerialManager initialises each port,
+# so this only covers boot until the serial ports are initialised.
+
 # UART order (and USB)
 SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 UART5 USART6 UART7 OTG2
 
@@ -79,35 +89,35 @@ define HAL_OTG2_PROTOCOL SerialProtocol_SLCAN
 
 # USART1 - RC input
 PA9  USART1_TX USART1
-PA10 USART1_RX USART1
+PA10 USART1_RX USART1 FLOATING
 
 # OTG_HS (USB connector)
 # PB14 OTG_HS_DM OTG2
 # PB15 OTG_HS_DP OTG2
 
 # USART2 - Telem1
-PD6 USART2_RX  USART2
+PD6 USART2_RX  USART2 FLOATING
 PD5 USART2_TX  USART2
 PD3 USART2_CTS USART2
 PD4 USART2_RTS USART2
 
 # USART3 - Serial3
 PD8 USART3_TX USART3
-PD9 USART3_RX USART3
+PD9 USART3_RX USART3 FLOATING
 PD11 USART3_CTS USART3
 PD12 USART3_RTS USART3
 
 # UART4 - Serial4
 PH13 UART4_TX UART4
-PD0  UART4_RX UART4
+PD0  UART4_RX UART4 FLOATING
 
 # UART5 - Serial5
 PB13 UART5_TX UART5
-PB12 UART5_RX UART5
+PB12 UART5_RX UART5 FLOATING
 
 # USART6 - Serial6
 PG14 USART6_TX USART6
-PG9  USART6_RX USART6
+PG9  USART6_RX USART6 FLOATING
 
 # UART7 - GPS
 PE8  UART7_TX  UART7
@@ -131,7 +141,16 @@ PG12 ETH_RMII_TXD1    ETH1
 PG11 ETH_RMII_TX_EN   ETH1
 PA7  ETH_RMII_CRS_DV  ETH1
 PA1  ETH_RMII_REF_CLK ETH1
-PK6  Ethernet_PWR_EN  OUTPUT HIGH  # disable power on ethernet
+
+# LAN8742A nRST (/ethernet/ETH_RST). Held low (PHY in reset) from boot.
+# BOARD_PHY_RESET() is called by mac_lld_init() (from AP_Networking init,
+# so only when NET_ENABLED=1): hold nRST low >= 100 us (trstia), release,
+# then wait before MDIO access. LAN8742A Table 5.11: trstia >= 100 us,
+# tpurstd >= 25 ms (supplies stable to nRST release; met because nRST is
+# held low from GPIO init until well after boot). Keep each sleep below
+# 65 ms: CH_CFG_ST_RESOLUTION 16 limits one sleep to 65535 ticks.
+PK6  GPIO_ETH_nRST OUTPUT LOW
+define BOARD_PHY_RESET() do { palClearLine(HAL_GPIO_PIN_GPIO_ETH_nRST); osalThreadSleepMilliseconds(1); palSetLine(HAL_GPIO_PIN_GPIO_ETH_nRST); osalThreadSleepMilliseconds(25); } while (0)
 
 define BOARD_PHY_ID      MII_LAN8742A_ID
 define BOARD_PHY_RMII
@@ -202,6 +221,9 @@ SPIDEV bmi088_g   SPI2 DEVID2 GYR3_CS  MODE3 10*MHZ 10*MHZ
 
 DMA_NOSHARE SPI4* SPI3*
 
+# BMM350 INT (IC302.A1, /processor/GPIO_PE15). Not used by the driver
+PE15 MAG_DRDY INPUT
+
 # Sensors
 COMPASS BMM350   I2C:0:0x14 0 ROTATION_ROLL_180_YAW_90
 IMU Invensensev3 SPI:iim42652_1 ROTATION_ROLL_180_YAW_90
@@ -236,6 +258,14 @@ PI4  VDD_5V_PERIPH_nOC  INPUT PULLUP
 # Power enables
 PJ0 HI_PWR_EN     OUTPUT HIGH GPIO(85)
 PJ1 PERIPH_PWR_EN OUTPUT HIGH GPIO(86)
+
+# internal sensor rail switch IC301 ON (/sens_pwr_cycle, R13 pull-up):
+# powers U1, U2, U301, U302 and IC302 (3.3V_INT_SENS). Must stay high.
+PG1 VDD_3V3_SENSORS_EN OUTPUT HIGH
+
+# power layer IC11 (LM73100) PG for the USB_CL input (PG_Pwr_USB_CL,
+# J105.23). Open drain with 47k to 5V_Bus, so no internal pull.
+PI10 VDD_USB_CL_PG INPUT FLOATING
 
 # IMU heater
 PG4 HEATER_EN OUTPUT LOW GPIO(80)
