@@ -5,7 +5,11 @@
 MCU STM32H7xx STM32H743xx
 
 # board ID. See Tools/AP_Bootloader/board_types.txt
-APJ_BOARD_ID AP_HW_BR_CORE
+# V1.5 hardware: boards ship with the MatekH743 bootloader
+# (AP_HW_MATEKH743, 1013), and firmware is only accepted for upload
+# when its board ID matches. V1.6 boards use AP_HW_BR_CORE (1700), on
+# branch BR_CORE_HW_DEF_V1.6-4.7.0.
+APJ_BOARD_ID AP_HW_MATEKH743
 
 # crystal frequency, setup to use external oscillator
 OSCILLATOR_HZ 24000000
