@@ -29,7 +29,12 @@ Build instructions are the same as upstream ArduPilot, see
 
 | Branch | Board (hwdef) | Description |
 |---|---|---|
-| `BR_CORE_HW_DEF_2-4.7.0` | `BR_Core` | BR Core on ArduPilot 4.7.0 (Plane-4.7.0 tag). |
+| `BR_CORE_HW_DEF_2-4.7.0` | `BR_Core` | BR Core hardware **V1.5** (boards in the field) on ArduPilot 4.7.0 (Plane-4.7.0 tag). Board ID `AP_HW_MATEKH743` (1013), matching the MatekH743 bootloader V1.5 boards ship with. PWM 11 on PB1 (TIM3). |
+| `BR_CORE_HW_DEF_V1.6-4.7.0` | `BR_Core` | BR Core hardware **V1.6** on ArduPilot 4.7.0. Board ID `AP_HW_BR_CORE` (1700): the board needs the V1.6 bootloader (`Tools/bootloaders/BR_Core_bl.bin` on this branch) flashed first. PWM 11 on PA3 (TIM15). |
+
+Use the branch that matches the hardware revision. The uploader checks the board
+ID, so V1.6 firmware won't load through the MatekH743 (1013) bootloader on V1.5
+boards, and V1.5 firmware drives PWM 11 on the wrong pin on V1.6 boards.
 
 ### CAN / DroneCAN peripherals (AP_Periph)
 
