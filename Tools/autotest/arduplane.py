@@ -7665,13 +7665,16 @@ return update()
             port = int(os.environ.get('SITL_CAN_MCAST_PORT', 57732))
             transfer_id = 0
             while not stop.is_set():
+                # read each value once, as the main thread may change them
+                ias = node['ias']
+                tas = node['tas']
                 msgs = []
-                if node['ias'] is not None:
+                if ias is not None:
                     msgs.append(dronecan.uavcan.equipment.air_data.IndicatedAirspeed(
-                        indicated_airspeed=node['ias'], indicated_airspeed_variance=0))
-                if node['tas'] is not None:
+                        indicated_airspeed=ias, indicated_airspeed_variance=0))
+                if tas is not None:
                     msgs.append(dronecan.uavcan.equipment.air_data.TrueAirspeed(
-                        true_airspeed=node['tas'], true_airspeed_variance=0))
+                        true_airspeed=tas, true_airspeed_variance=0))
                 for msg in msgs:
                     transfer = dronecan.transport.Transfer(
                         transfer_id=transfer_id, source_node_id=100, payload=msg)
